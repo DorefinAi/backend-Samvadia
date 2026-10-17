@@ -13,6 +13,8 @@ portal / email / WhatsApp
   -> worker creates FTP <FTP_BASE_DIR>/<slug>/ and uploads files under their original names
   -> size check, then the Storage copy is deleted
   -> desk reviews: edit, pick reporter, approve / reject (reason codes) / reopen
+  -> approve creates a story; it enters the Octopus RSS feed once the files are on FTP
+  -> Octopus polls GET /feed/<FEED_SECRET>/feed.xml every minute; each poll is logged in feed_log
 ```
 
 **Rules every channel follows:**
@@ -35,11 +37,40 @@ portal / email / WhatsApp
 
 The digital desk (Socia) gets its own backend repo and service. The only link between the two is the FTP slug folders.
 
+## Octopus feed
+
+The feed follows the mapping proven against 1st India's Octopus (`phase-1/vartmaan-production-template.xml`):
+
+| Element | Value |
+|---|---|
+| `<title>` | the slug, with `FLASH ` for breaking stories, `UPDATE ` for corrections, `KILL ` for withdrawals |
+| `<description>` | city line, body, reporter line. An UPDATE starts with a `((…))` line naming the slug it replaces, which Octopus leaves out of the read time |
+| `<category>` | district name |
+| `<guid>` | `vartmaan-{slug}-v{version}`, generated once, never reused |
+| `<pubDate>` | the time the story entered the feed (IST) |
+
+- **Approve = publish.** The story waits until the item's files are on FTP, then enters the feed.
+- **A published story is never edited.** Octopus ignores a GUID it has already seen. A correction is `POST /desk/items/{id}/publish-update`, which creates a new version. Kill (`POST /desk/items/{id}/kill`) also needs a ninth wire rule in Octopus: Title contains KILL, colour grey, tag KILL.
+- **Two locks:** the secret path, and `OCTOPUS_ALLOWED_IPS`. Refused requests get 404, so the path does not advertise itself.
+- **Cheap polling:** ETag and Last-Modified headers mean most polls end in a 304.
+- **Proof of delivery:** every request, served or refused, goes to `feed_log`. A story's `collected_at` is the first successful poll after it went live.
+- **Client IP:** it is read from the end of `X-Forwarded-For`, which a caller cannot forge. After the first deploy, check the IPs in `feed_log` to confirm `TRUSTED_PROXY_HOPS`.
+
+## Shadow mode and queues
+
+- **Blind flag.** A random 10% of items get `blind = true` (`BLIND_RATE`). When the AI panel exists, the desk UI must hide it and must not prefill the AI draft for these items. Their decisions are the clean labels for training.
+- **Named queues.** Jobs go to `default` (database work) or `media` (downloads, FTP). `gpu` and `cloud` are reserved for the AI steps. A worker takes the queues it is given:
+  ```bash
+  python -m app.worker --queues default,media     # Render worker
+  python -m app.worker --queues gpu --no-schedule # later, on the GPU box
+  ```
+  On SIGTERM (every Render deploy), the worker finishes the job in hand, then exits.
+- **Embeddings.** `items.embedding` is a 1024-dimension pgvector column with a cosine HNSW index, ready for BGE-M3 duplicate search.
+
 ## Not built yet
 
-- The RSS feed to Octopus
 - Moving rejected folders to `_rejected/`
-- The AI pipeline (transcription, tags, drafts)
+- The AI pipeline: transcription, tags, policy checks, drafts, and computing embeddings. This waits on the GPU gate and Sarvam API access.
 - The digital desk endpoints
 - The WhatsApp auto-reply to the reporter
 - FTP browsing and attaching files that reporters uploaded straight to FTP
@@ -97,6 +128,7 @@ Every request sends cookies (`credentials: "include"`). Every POST, PATCH, PUT a
 | Desk edit / reporter picker | `PATCH /desk/items/{id} {version, headline?, body?, slug_subject?, story_type?, reporter_id?, category?, priority?, tags?, city_code?, slug?}` (409 if `version` is stale; a hand-typed `slug` sticks until `POST /desk/items/{id}/slug/reset`), `GET /desk/reporters?q=`, `POST /desk/reporters` (admin) |
 | Desk pick-lists | `GET /desk/locations` returns locations, categories, priorities, story types and reject reasons |
 | Desk fetch history | `GET /desk/fetch-runs` (what each WhatsApp or Outlook pull added) |
+| Feed page | `GET /desk/stories?item_id=` (state, `collected_at`), `POST /desk/items/{id}/publish-update` and `.../kill` (admin), `GET /desk/feed-log` (admin) |
 | Desk decisions | `POST /desk/items/{id}/approve`, `.../reject {reason, note?}`, `.../reopen` |
 | Desk retries | `POST /desk/items/{id}/retry-ftp`, `POST /desk/media/{id}/retry`, `POST /desk/refresh` |
 | Access page | `GET/POST /admin/users`, `PATCH /admin/users/{id}` |

@@ -39,6 +39,16 @@ class Settings(BaseSettings):
     graph_api_version: str = "v21.0"
     whatsapp_merge_seconds: int = 90
 
+    # Octopus RSS feed: GET /feed/{FEED_SECRET}/feed.xml. Empty secret = feed off.
+    feed_secret: str = ""
+    octopus_allowed_ips: str = ""  # comma-separated; empty = no IP check (set it in production)
+    feed_link_base: str = "https://dorefinai.com/wire"
+    feed_limit: int = 200
+    # Which X-Forwarded-For entry is the real client: 0 = the last one (added by Render's proxy).
+    trusted_proxy_hops: int = 0
+
+    blind_rate: float = 0.10
+
     ms_tenant_id: str = ""
     ms_client_id: str = ""
     ms_client_secret: str = ""
@@ -56,6 +66,10 @@ class Settings(BaseSettings):
             if url.startswith(prefix):
                 return "postgresql+psycopg://" + url[len(prefix):]
         return url
+
+    @property
+    def octopus_ip_list(self) -> list[str]:
+        return [ip.strip() for ip in self.octopus_allowed_ips.split(",") if ip.strip()]
 
     @property
     def mail_enabled(self) -> bool:

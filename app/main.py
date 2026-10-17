@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
-from app.api import admin, auth, desk, events, reporter, webhooks
+from app.api import admin, auth, desk, events, feed, reporter, webhooks
 from app.config import get_settings
 from app.db import SessionLocal
 
@@ -16,7 +16,7 @@ app.add_middleware(
     allow_headers=["Content-Type", "X-CSRF", "Last-Event-ID"],
 )
 
-for module in (auth, reporter, desk, admin, webhooks, events):
+for module in (auth, reporter, desk, admin, webhooks, events, feed):
     app.include_router(module.router)
 
 

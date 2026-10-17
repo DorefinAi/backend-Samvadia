@@ -33,6 +33,7 @@ os.environ.update(
     WHATSAPP_APP_SECRET="app-secret", WHATSAPP_TOKEN="wa-token", WHATSAPP_VERIFY_TOKEN="verify-me",
     MS_TENANT_ID="t", MS_CLIENT_ID="c", MS_CLIENT_SECRET="s", MS_MAILBOX="desk@example.com",
     SUPABASE_URL="http://fake-storage", SUPABASE_SERVICE_KEY="k",
+    FEED_SECRET="feed-secret", OCTOPUS_ALLOWED_IPS="10.9.8.7", FEED_LINK_BASE="https://dorefinai.com/wire",
 )
 
 # --- local FTP server ---
@@ -281,8 +282,65 @@ check("desk: unknown reject reason refused", r.status_code == 422)
 r = desk.post(f"/desk/items/{item_id}/reject", json={"reason": "duplicate", "note": "same as ol-202"})
 check("desk: reject", r.status_code == 200 and r.json()["item"]["review_state"] == "rejected", r.text)
 check("desk: reopen", desk.post(f"/desk/items/{item_id}/reopen").json()["item"]["review_state"] == "pending")
-check("desk: approve", desk.post(f"/desk/items/{item_id}/approve").json()["item"]["review_state"] == "approved")
+approved = desk.post(f"/desk/items/{item_id}/approve").json()
+check("desk: approve", approved["item"]["review_state"] == "approved")
+story1 = approved.get("story") or {}
+check("feed: approve creates a ready story (files already on FTP)", story1.get("state") == "ready", str(story1)[:200])
+check("feed: breaking story titled FLASH, GUID v1", story1.get("title") == "FLASH " + slug
+      and story1.get("guid") == f"vartmaan-{slug}-v1", str(story1)[:200])
+check("feed: story text has city line and reporter line",
+      story1.get("description", "").startswith("उदयपुर:\n\n") and "संवाददाता: Sunita Sharma, उदयपुर ब्यूरो" in story1.get("description", ""),
+      repr(story1.get("description")))
 check("desk: approve without slug refused", desk.post(f"/desk/items/{em.id}/approve").status_code == 409)
+
+# 5b. Octopus feed: two locks, CDATA, ETag, delivery log
+octo = TestClient(app)
+OK_IP = {"X-Forwarded-For": "203.0.113.5, 10.9.8.7"}
+check("feed: wrong secret is 404", octo.get("/feed/nope/feed.xml", headers=OK_IP).status_code == 404)
+check("feed: unknown IP is 404", octo.get("/feed/feed-secret/feed.xml").status_code == 404)
+check("feed: forged first X-Forwarded-For is 404",
+      octo.get("/feed/feed-secret/feed.xml", headers={"X-Forwarded-For": "10.9.8.7, 198.51.100.9"}).status_code == 404)
+r = octo.get("/feed/feed-secret/feed.xml", headers=OK_IP)
+check("feed: allowed IP gets RSS", r.status_code == 200 and r.headers["content-type"].startswith("application/rss+xml"), str(r.status_code))
+check("feed: title in CDATA, GUID present", f"<![CDATA[FLASH {slug}]]>" in r.text and f"vartmaan-{slug}-v1" in r.text, r.text[:400])
+etag = r.headers.get("etag")
+r304 = octo.get("/feed/feed-secret/feed.xml", headers={**OK_IP, "If-None-Match": etag})
+check("feed: unchanged feed answers 304", r304.status_code == 304, str(r304.status_code))
+
+check("feed: desk role cannot send an update", desk.post(f"/desk/items/{item_id}/publish-update").status_code == 403)
+upd = lead_c_pre = TestClient(app)
+login(upd, "lead", "lead-pass-1")
+r = upd.post(f"/desk/items/{item_id}/publish-update")
+story2 = r.json().get("story", {})
+check("feed: update is a new story v2 titled UPDATE", r.status_code == 200 and story2.get("title") == "UPDATE " + slug
+      and story2.get("guid") == f"vartmaan-{slug}-v2", r.text[:300])
+check("feed: update starts with the (( )) cancel line", story2.get("description", "").startswith(f"((पिछला संस्करण रद्द करें: {slug}))"))
+r = octo.get("/feed/feed-secret/feed.xml", headers={**OK_IP, "If-None-Match": etag})
+check("feed: changed feed answers 200 with both versions", r.status_code == 200 and r.text.count("<item>") == 2, str(r.status_code))
+stories = desk.get("/desk/stories", params={"item_id": item_id}).json()["stories"]
+v1 = next(s_ for s_ in stories if s_["version"] == 1)
+check("feed: story shows when Octopus collected it", v1["collected_at"] is not None, str(v1))
+log = upd.get("/desk/feed-log").json()
+check("feed: every request logged", sorted({r_["status"] for r_ in log["requests"]}) == [200, 304, 404]
+      and log["last_collected_at"], str(log)[:300])
+
+# 5c. A story approved before its files reach FTP waits, then enters the feed
+em_now = desk.get(f"/desk/items/{em.id}").json()["item"]
+r = desk.patch(f"/desk/items/{em.id}", json={"version": em_now["version"], "reporter_id": sunita_id})
+check("email: desk assigns reporter, slug built", r.status_code == 200 and r.json()["item"]["slug"], r.text[:200])
+r = desk.post(f"/desk/items/{em.id}/approve")
+check("feed: approved before upload -> story waits", r.status_code == 200 and r.json()["story"]["state"] == "waiting", r.text[:300])
+drain()
+waited = desk.get("/desk/stories", params={"item_id": str(em.id)}).json()["stories"][0]
+check("feed: story released once files are on FTP", waited["state"] == "ready" and waited["published_at"], str(waited)[:200])
+
+# 5d. Blind flag and named queues
+items_all = desk.get("/desk/items").json()["items"]
+check("blind: every item carries the flag", all(isinstance(i["blind"], bool) for i in items_all), str(items_all[:1])[:200])
+with session_scope() as db:
+    jobs.enqueue(db, "purge_storage", {})
+check("queues: default worker skips media jobs", jobs.run_one(["default"]) is False)
+check("queues: media worker takes it", jobs.run_one(["media"]) is True)
 
 # 6. Roles
 chief = TestClient(app)

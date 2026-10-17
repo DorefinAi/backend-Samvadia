@@ -13,6 +13,7 @@ from sqlalchemy import (
     UniqueConstraint, func, text,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
+from pgvector.sqlalchemy import Vector
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -31,6 +32,11 @@ INTAKE_STATES = ("collecting", "needs_desk", "uploading", "on_ftp", "ftp_failed"
 REVIEW_STATES = ("pending", "approved", "rejected")
 MEDIA_STATES = ("awaiting_upload", "downloading", "in_storage", "on_ftp", "failed", "skipped", "link_only")
 REJECT_REASONS = ("duplicate", "not_newsworthy", "poor_visuals", "unverified", "other")
+# waiting: approved, files not yet on FTP · ready: in the feed (an UPDATE is a new ready row, the old one stays)
+STORY_STATES = ("waiting", "ready")
+STORY_KINDS = ("original", "update", "kill")
+QUEUES = ("default", "media", "gpu", "cloud")
+EMBEDDING_DIM = 1024  # BGE-M3
 
 
 def _in(column: str, values: tuple[str, ...]) -> str:
@@ -72,6 +78,7 @@ class Reporter(Base):
     id: Mapped[uuid.UUID] = _uuid_pk()
     org_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     name: Mapped[str] = mapped_column(Text, nullable=False)
+    name_hi: Mapped[str | None] = mapped_column(Text)  # for the reporter line in the story: संवाददाता: …
     slug_code: Mapped[str] = mapped_column(String(16), nullable=False)  # e.g. SUNITA
     city_code: Mapped[str] = mapped_column(String(8), nullable=False)  # e.g. UDR
     district: Mapped[str | None] = mapped_column(Text)
@@ -134,6 +141,9 @@ class Item(Base):
     received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     last_message_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     version: Mapped[int] = mapped_column(Integer, nullable=False, server_default="1", default=1)
+    # True for a random 10%: the desk sees no AI panel or AI draft, so these decisions are clean labels.
+    blind: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"), default=False)
+    embedding = mapped_column(Vector(EMBEDDING_DIM), nullable=True)  # filled by the dedupe step (AI stage)
     created_at: Mapped[datetime] = _created()
     updated_at: Mapped[datetime] = _updated()
 
@@ -221,12 +231,13 @@ class Job(Base):
     __tablename__ = "jobs"
     __table_args__ = (
         CheckConstraint("status IN ('pending', 'running', 'done', 'failed')", name="jobs_status_check"),
-        Index("jobs_pick_idx", "status", "run_after"),
+        Index("jobs_pick_idx", "status", "queue", "run_after"),
         Index("jobs_dedupe_key", "dedupe_key", unique=True, postgresql_where=text("status IN ('pending', 'running')")),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     type: Mapped[str] = mapped_column(String(48), nullable=False)
+    queue: Mapped[str] = mapped_column(String(16), nullable=False, server_default="default", default="default")
     payload: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'::jsonb"), default=dict)
     status: Mapped[str] = mapped_column(String(16), nullable=False, server_default="pending", default="pending")
     attempts: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0", default=0)
@@ -255,7 +266,8 @@ class Location(Base):
     __tablename__ = "locations"
 
     code: Mapped[str] = mapped_column(String(8), primary_key=True)
-    name: Mapped[str] = mapped_column(Text, nullable=False)
+    name: Mapped[str] = mapped_column(Text, nullable=False)  # English: the feed's <category>
+    name_hi: Mapped[str | None] = mapped_column(Text)  # Hindi: the city line and bureau in the story text
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"), default=True)
 
 
@@ -269,6 +281,47 @@ class FetchRun(Base):
     added: Mapped[int] = mapped_column(Integer, nullable=False)
     titles: Mapped[list[str]] = mapped_column(ARRAY(Text), nullable=False, server_default=text("'{}'"), default=list)
     at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+
+
+class Story(Base):
+    """What we published to Octopus. One item can have several stories (original, then UPDATEs, then KILL).
+    A story row is never edited after it is ready: Octopus ignores a GUID it has seen, so a change is a new row."""
+    __tablename__ = "stories"
+    __table_args__ = (
+        CheckConstraint(_in("state", STORY_STATES), name="stories_state_check"),
+        CheckConstraint(_in("kind", STORY_KINDS), name="stories_kind_check"),
+        UniqueConstraint("item_id", "version", name="stories_item_version_key"),
+        Index("stories_feed_idx", "state", "published_at"),
+    )
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    org_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    item_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("items.id", ondelete="CASCADE"), nullable=False, index=True)
+    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    replaces_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("stories.id"))
+    slug: Mapped[str] = mapped_column(String(96), nullable=False)
+    title: Mapped[str] = mapped_column(Text, nullable=False)  # FLASH / UPDATE / KILL prefix + slug
+    description: Mapped[str] = mapped_column(Text, nullable=False)  # city line, body, reporter line, (( )) block
+    district: Mapped[str] = mapped_column(Text, nullable=False)  # the feed's first <category>
+    guid: Mapped[str] = mapped_column(Text, nullable=False, unique=True)  # vartmaan-{slug}-v{version}, never reused
+    read_seconds: Mapped[int] = mapped_column(Integer, nullable=False)
+    state: Mapped[str] = mapped_column(String(16), nullable=False)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))  # set when it enters the feed
+    created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
+    created_at: Mapped[datetime] = _created()
+
+
+class FeedLog(Base):
+    """Every request for the Octopus feed. RSS has no delivery receipt; this log is our only proof of collection."""
+    __tablename__ = "feed_log"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+    client_ip: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[int] = mapped_column(Integer, nullable=False)  # 200, 304, or 404 when refused
+    item_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0", default=0)
+    user_agent: Mapped[str | None] = mapped_column(Text)
 
 
 class KV(Base):

@@ -21,10 +21,11 @@ from sqlalchemy.orm import Session
 from app.events import emit, item_changed
 from app.intake import WAITING_STATES, add_media, add_message, find_reporter, finalize, record_fetch, schedule_finalize
 from app.jobs import RetryLater, enqueue, now
-from app.models import KV, Event, Item, Job, Media
+from app.models import KV, Event, FeedLog, Item, Job, Media
 from app.services import ftp, mail, storage, whatsapp
 from app.services.filenames import generated_name, safe_name, unique_name
 from app.services.slug import unique_slug
+from app.stories import release_waiting
 
 log = logging.getLogger("tasks")
 
@@ -90,6 +91,7 @@ def ftp_upload(db: Session, payload: dict) -> None:
     if pending:
         raise RetryLater(15, f"{pending} more file(s) arrived during the upload")
     item.intake_state = "on_ftp"
+    release_waiting(db, item)  # approved stories enter the feed only once their files are on FTP
     item_changed(db, item)
 
 
@@ -226,6 +228,7 @@ def purge_storage(db: Session, payload: dict) -> None:
 def cleanup(db: Session, payload: dict) -> None:
     db.execute(delete(Event).where(Event.created_at < now() - timedelta(hours=24)))
     db.execute(delete(Job).where(Job.status == "done", Job.updated_at < now() - timedelta(days=7)))
+    db.execute(delete(FeedLog).where(FeedLog.at < now() - timedelta(days=90)))
 
 
 HANDLERS = {

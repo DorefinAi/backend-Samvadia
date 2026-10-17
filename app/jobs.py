@@ -18,6 +18,12 @@ from app.models import Job
 
 log = logging.getLogger("jobs")
 BACKOFF_SECONDS = [10, 60, 300]
+# default: metadata and database work · media: downloads, FTP · gpu / cloud: AI steps (box first, API fallback)
+QUEUE_FOR = {
+    "fetch_whatsapp_media": "media", "fetch_mail_attachment": "media", "ftp_upload": "media",
+    "ftp_rename": "media", "purge_storage": "media",
+}
+ALL_QUEUES = ["default", "media", "gpu", "cloud"]
 STALE_AFTER = timedelta(minutes=30)
 
 
@@ -34,10 +40,11 @@ def now() -> datetime:
 
 
 def enqueue(db: Session, type_: str, payload: dict, *, delay: float = 0, dedupe_key: str | None = None,
-            max_attempts: int = 4) -> None:
+            max_attempts: int = 4, queue: str | None = None) -> None:
     """Add a job in the caller's transaction. With dedupe_key, a second pending copy is skipped."""
     stmt = insert(Job).values(
-        type=type_, payload=payload, run_after=now() + timedelta(seconds=delay),
+        type=type_, queue=queue or QUEUE_FOR.get(type_, "default"), payload=payload,
+        run_after=now() + timedelta(seconds=delay),
         dedupe_key=dedupe_key, max_attempts=max_attempts,
     )
     if dedupe_key:
@@ -45,16 +52,16 @@ def enqueue(db: Session, type_: str, payload: dict, *, delay: float = 0, dedupe_
     db.execute(stmt)
 
 
-def _claim() -> Job | None:
+def _claim(queues: list[str]) -> Job | None:
     with session_scope() as db:
         job_id = db.execute(text("""
             UPDATE jobs SET status = 'running', locked_at = now(), attempts = attempts + 1, updated_at = now()
             WHERE id = (
-                SELECT id FROM jobs WHERE status = 'pending' AND run_after <= now()
+                SELECT id FROM jobs WHERE status = 'pending' AND run_after <= now() AND queue = ANY(:queues)
                 ORDER BY run_after, id FOR UPDATE SKIP LOCKED LIMIT 1
             )
             RETURNING id
-        """)).scalar()
+        """), {"queues": queues}).scalar()
         return db.get(Job, job_id) if job_id else None
 
 
@@ -63,11 +70,11 @@ def _finish(job_id: int, **values) -> None:
         db.execute(update(Job).where(Job.id == job_id).values(**values))
 
 
-def run_one() -> bool:
-    """Run the next due job. Returns False when there was nothing to do."""
+def run_one(queues: list[str] | None = None) -> bool:
+    """Run the next due job from these queues. Returns False when there was nothing to do."""
     from app.tasks import HANDLERS  # late import: tasks import this module
 
-    job = _claim()
+    job = _claim(queues or ALL_QUEUES)
     if job is None:
         return False
     handler, on_failure = HANDLERS[job.type]
@@ -102,10 +109,15 @@ def reset_stale() -> None:
                    .values(status="pending", run_after=now()))
 
 
-def work_forever(periodic: list[tuple[float, callable]], idle_sleep: float = 1.0) -> None:
+class Stop:
+    """Set by SIGTERM: Render sends it on every deploy. The loop finishes the job in hand, then exits."""
+    requested = False
+
+
+def work_forever(periodic: list[tuple[float, callable]], queues: list[str], idle_sleep: float = 1.0) -> None:
     """Worker main loop. periodic: [(every_seconds, fn)], each fn runs in the loop when due."""
     last_run = {fn: 0.0 for _, fn in periodic}
-    while True:
+    while not Stop.requested:
         for every, fn in periodic:
             if time.monotonic() - last_run[fn] >= every:
                 last_run[fn] = time.monotonic()
@@ -114,7 +126,7 @@ def work_forever(periodic: list[tuple[float, callable]], idle_sleep: float = 1.0
                 except Exception:
                     log.exception("periodic %s failed", fn.__name__)
         try:
-            busy = run_one()
+            busy = run_one(queues)
         except Exception:
             log.exception("worker loop error")
             busy = False

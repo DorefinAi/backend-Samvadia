@@ -4,6 +4,7 @@ and hand the item to the FTP upload job.
     message/file arrives -> item (collecting) -> finalize -> slug -> uploading -> on_ftp
                                                        \-> needs_desk (reporter or subject missing)
 """
+import random
 import uuid
 from datetime import datetime, timedelta
 
@@ -44,6 +45,7 @@ def new_item(db: Session, *, source: str, reporter: Reporter | None, sender_name
         sender_name=sender_name or (reporter.name if reporter else None), sender_contact=sender_contact,
         conversation_key=conversation_key, headline=headline, body=body, received_at=received_at,
         last_message_at=received_at, intake_state="collecting", review_state="pending",
+        blind=random.random() < get_settings().blind_rate,
     )
     db.add(item)
     db.flush()

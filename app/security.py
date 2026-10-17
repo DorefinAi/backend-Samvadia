@@ -32,10 +32,21 @@ PERMISSIONS: dict[str, tuple[str, ...]] = {
     "desk.review": DESK_WRITE,
     "desk.fetch": DESK_WRITE,
     "reporters.manage": ADMINS,
+    "feed.manage": ADMINS,
     "users.manage": ADMINS,
     "report.submit": ("reporter",),
 }
 ROLE_RANK = ("super_admin", "admin", "assignment_desk", "chief_editor", "reporter")
+
+
+def client_ip(request: Request) -> str:
+    """The caller's IP behind Render's proxy. A client can put anything at the front of
+    X-Forwarded-For, so count from the end, where our own proxy appends the real address."""
+    forwarded = [p.strip() for p in request.headers.get("x-forwarded-for", "").split(",") if p.strip()]
+    hops = get_settings().trusted_proxy_hops
+    if len(forwarded) > hops:
+        return forwarded[-1 - hops]
+    return request.client.host if request.client else ""
 
 
 def permissions_for(role: str) -> list[str]:

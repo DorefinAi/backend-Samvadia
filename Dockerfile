@@ -11,4 +11,5 @@ COPY alembic.ini ./
 COPY alembic ./alembic
 
 # Render sets PORT. The worker service overrides this command with: python -m app.worker
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips="*"
+# No --proxy-headers: app.security.client_ip reads X-Forwarded-For from the trusted end itself.
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}

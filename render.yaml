@@ -51,13 +51,17 @@ services:
         sync: false
       - key: MS_MAILBOX
         sync: false
+      - key: FEED_SECRET
+        sync: false
+      - key: OCTOPUS_ALLOWED_IPS
+        sync: false
 
   - type: worker
     name: vartmaan-worker
     runtime: docker
     region: singapore
     plan: starter
-    dockerCommand: python -m app.worker
+    dockerCommand: python -m app.worker --queues default,media
     envVars:
       - key: ORG_ID
         value: 00000000-0000-0000-0000-000000000001
@@ -100,4 +104,8 @@ services:
       - key: MS_CLIENT_SECRET
         sync: false
       - key: MS_MAILBOX
+        sync: false
+      - key: FEED_SECRET
+        sync: false
+      - key: OCTOPUS_ALLOWED_IPS
         sync: false

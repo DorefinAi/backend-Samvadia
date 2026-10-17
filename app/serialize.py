@@ -1,5 +1,5 @@
 """JSON shapes the frontends read."""
-from app.models import Item, Media, Message, Reporter, User
+from app.models import Item, Media, Message, Reporter, Story, User
 
 # What the reporter portal shows for an item (news-portal Report.status).
 REPORT_STATUS = {"pending": "reviewing", "approved": "published", "rejected": "rejected"}
@@ -8,7 +8,7 @@ REPORT_STATUS = {"pending": "reviewing", "approved": "published", "rejected": "r
 def reporter_out(r: Reporter | None) -> dict | None:
     if r is None:
         return None
-    return {"id": str(r.id), "name": r.name, "slug_code": r.slug_code, "city_code": r.city_code,
+    return {"id": str(r.id), "name": r.name, "name_hi": r.name_hi, "slug_code": r.slug_code, "city_code": r.city_code,
             "district": r.district, "phone": r.phone, "email": r.email, "active": r.active,
             "has_login": r.user_id is not None}
 
@@ -28,6 +28,14 @@ def message_out(m: Message) -> dict:
             "received_at": m.received_at.isoformat()}
 
 
+def story_out(s: Story, collected_at=None) -> dict:
+    return {"id": str(s.id), "item_id": str(s.item_id), "version": s.version, "kind": s.kind, "slug": s.slug,
+            "title": s.title, "description": s.description, "district": s.district, "guid": s.guid,
+            "read_seconds": s.read_seconds, "state": s.state,
+            "published_at": s.published_at.isoformat() if s.published_at else None,
+            "collected_at": collected_at.isoformat() if collected_at else None}
+
+
 def item_out(item: Item, *, full: bool = False) -> dict:
     out = {
         "id": str(item.id), "source": item.source, "headline": item.headline, "slug": item.slug,
@@ -39,7 +47,7 @@ def item_out(item: Item, *, full: bool = False) -> dict:
         "reporter": reporter_out(item.reporter), "intake_state": item.intake_state, "intake_note": item.intake_note,
         "review_state": item.review_state, "reject_reason": item.reject_reason, "reject_note": item.reject_note,
         "ftp_folder": item.ftp_folder, "received_at": item.received_at.isoformat(),
-        "last_message_at": item.last_message_at.isoformat(), "version": item.version,
+        "last_message_at": item.last_message_at.isoformat(), "version": item.version, "blind": item.blind,
         "status": "submitted" if item.intake_state == "collecting" else REPORT_STATUS[item.review_state],
     }
     if full:

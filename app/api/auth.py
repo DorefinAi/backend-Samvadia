@@ -6,7 +6,8 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.models import Reporter, User
 from app.security import (
-    Caller, assignable_roles, current, end_session, login_limiter, permissions_for, start_session, verify_password,
+    Caller, assignable_roles, client_ip, current, end_session, login_limiter, permissions_for, start_session,
+    verify_password,
 )
 from app.serialize import reporter_out, user_out
 
@@ -30,7 +31,7 @@ def me_out(caller: Caller) -> dict:
 
 @router.post("/auth/login")
 def login(body: LoginIn, request: Request, response: Response, db: Session = Depends(get_db)):
-    key = f"{body.username.lower()}|{request.client.host if request.client else ''}"
+    key = f"{body.username.lower()}|{client_ip(request)}"
     if login_limiter.blocked(key):
         raise HTTPException(429, "Too many failed attempts. Try again in 15 minutes.")
     user = db.scalar(select(User).where(User.username == body.username.strip().lower()))
