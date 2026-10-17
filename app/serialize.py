@@ -31,7 +31,10 @@ def message_out(m: Message) -> dict:
 def item_out(item: Item, *, full: bool = False) -> dict:
     out = {
         "id": str(item.id), "source": item.source, "headline": item.headline, "slug": item.slug,
-        "slug_subject": item.slug_subject, "story_type": item.story_type,
+        "slug_subject": item.slug_subject, "story_type": item.story_type, "slug_edited": item.slug_edited,
+        "category": item.category, "priority": item.priority, "tags": list(item.tags or []),
+        "city_code": item.city_code,
+        "location_code": item.city_code or (item.reporter.city_code if item.reporter else None),
         "sender_name": item.sender_name, "sender_contact": item.sender_contact,
         "reporter": reporter_out(item.reporter), "intake_state": item.intake_state, "intake_note": item.intake_note,
         "review_state": item.review_state, "reject_reason": item.reject_reason, "reject_note": item.reject_note,

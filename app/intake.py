@@ -11,9 +11,9 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.events import item_changed
+from app.events import emit, item_changed
 from app.jobs import RetryLater, enqueue
-from app.models import Item, Media, Message, Reporter
+from app.models import FetchRun, Item, Media, Message, Reporter
 from app.services.filenames import kind_of
 from app.services.slug import SlugError, build_slug, unique_slug
 from app.services.whatsapp import digits
@@ -105,6 +105,13 @@ def add_media(db: Session, item: Item, *, source: str, state: str, message: Mess
     return media
 
 
+def record_fetch(db: Session, source: str, titles: list[str], always: bool = False) -> None:
+    """One fetch_runs row per pull that added something (or every manual Refresh)."""
+    if titles or always:
+        db.add(FetchRun(source=source, added=len(titles), titles=titles[:20]))
+        emit(db, "desk", "fetch.run", {"source": source, "added": len(titles), "titles": titles[:20]})
+
+
 def schedule_finalize(db: Session, item: Item, delay: float = 0) -> None:
     """Finalize after the quiet period. A later message schedules a later finalize; the earlier one then does nothing."""
     enqueue(db, "finalize_item", {"item_id": str(item.id), "after": item.last_message_at.isoformat()},
@@ -116,7 +123,7 @@ def slug_for(db: Session, item: Item) -> str:
     if reporter is None:
         raise SlugError("Unknown sender: pick a reporter to build the slug.")
     subject = item.slug_subject or item.headline or item.body
-    slug = build_slug(item.received_at, reporter.city_code, subject, item.story_type or get_settings().default_story_type,
+    slug = build_slug(item.received_at, item.city_code or reporter.city_code, subject, item.story_type or get_settings().default_story_type,
                       reporter.slug_code, get_settings().slug_subject_max_words)
     taken = set(db.scalars(select(Item.slug).where(Item.slug.like(f"{slug}%"), Item.id != item.id)).all())
     return unique_slug(slug, taken)

@@ -163,7 +163,7 @@ reporter = TestClient(app)
 login(reporter, "sunita", "sunita-pass")
 r = reporter.post("/reporter/items", json={
     "headline": "उदयपुर में पर्यटन सीजन शुरू", "body": "झीलों के शहर में पर्यटकों की भीड़।", "subject": "Paryatan season",
-    "story_type": "AV", "files": [{"name": "IMG_0001.jpg", "size": 5, "content_type": "image/jpeg"},
+    "story_type": "AV", "tags": ["Breaking News", "Tourism", "breaking news"], "files": [{"name": "IMG_0001.jpg", "size": 5, "content_type": "image/jpeg"},
                                   {"name": "IMG_0001.jpg", "size": 6, "content_type": "image/jpeg"}],
 })
 check("portal: create report", r.status_code == 200, r.text)
@@ -187,6 +187,9 @@ with session_scope() as db:
     check("portal: FTP folder has original names, second renamed", names == ["IMG_0001.jpg", "IMG_0001_2.jpg"], str(names))
     check("portal: Storage emptied", not any(STORE.rglob("*.*")) and not list((STORE / "items" / item_id).glob("*")),
           str(list(STORE.rglob("*"))))
+check("portal: tags kept, Breaking tag sets priority",
+      r2.json()["item"]["tags"] == ["Breaking News", "Tourism"] and r2.json()["item"]["priority"] == "breaking",
+      str(r2.json()["item"].get("tags")))
 mine = reporter.get("/reporter/items").json()["items"]
 check("portal: reporter sees own report as reviewing", mine and mine[0]["status"] == "reviewing", json.dumps(mine)[:200])
 
@@ -233,17 +236,44 @@ with session_scope() as db:
     files = [p.name for p in (FTP_ROOT / "vartmaan/incoming" / wa_item.slug).iterdir()]
     check("whatsapp: photo saved with a time-based name", len(files) == 1 and files[0].endswith("_01.jpg"), str(files))
 
+# 3b. Desk moves the story to Jaipur: slug and FTP folder follow; a hand-typed slug sticks until reset
+wa = desk.get(f"/desk/items/{wa_item.id}").json()["item"]
+r = desk.patch(f"/desk/items/{wa_item.id}", json={"version": wa["version"], "city_code": "jpr", "category": "Weather", "priority": "high"})
+check("desk: location override rebuilds slug", r.status_code == 200 and "_JPR_JAYPUR_" in r.json()["item"]["slug"], r.text[:300])
+check("desk: unknown location refused", desk.patch(f"/desk/items/{wa_item.id}", json={"version": r.json()["item"]["version"], "city_code": "XYZ"}).status_code == 422)
+check("desk: unknown category refused", desk.patch(f"/desk/items/{wa_item.id}", json={"version": r.json()["item"]["version"], "category": "Gossip"}).status_code == 422)
+drain()
+moved = r.json()["item"]["slug"]
+check("desk: FTP folder renamed to new slug", (FTP_ROOT / "vartmaan/incoming" / moved).is_dir()
+      and not (FTP_ROOT / "vartmaan/incoming" / wa_item.slug).exists(), moved)
+v = r.json()["item"]["version"]
+hand = moved.rsplit("_", 3)[0] + "_RAIN_AV_SUNITA"
+r = desk.patch(f"/desk/items/{wa_item.id}", json={"version": v, "slug": hand})
+check("desk: hand-typed slug accepted", r.status_code == 200 and r.json()["item"]["slug_edited"], r.text[:200])
+r = desk.patch(f"/desk/items/{wa_item.id}", json={"version": r.json()["item"]["version"], "story_type": "PKG"})
+check("desk: hand-typed slug not overwritten", r.json()["item"]["slug"] == hand, r.json()["item"]["slug"])
+r = desk.post(f"/desk/items/{wa_item.id}/slug/reset")
+check("desk: slug reset rebuilds", r.status_code == 200 and r.json()["item"]["slug"].endswith("_PKG_SUNITA")
+      and not r.json()["item"]["slug_edited"], r.text[:200])
+drain()
+meta = desk.get("/desk/locations").json()
+check("desk: locations and pick-lists", len(meta["locations"]) == 14 and "Weather" in meta["categories"], str(meta)[:200])
+
 # 4. Email: subject + cleaned body to DB, inline logo skipped, PDF to FTP; sender unknown -> desk
 with session_scope() as db:
     jobs.enqueue(db, "fetch_mail", {})
 drain()
 with session_scope() as db:
-    em = db.scalars(select(Item).where(Item.source == "email")).one()
+    em = db.scalars(select(Item).where(Item.source == "outlook")).one()
     check("email: headline from subject", em.headline.startswith("प्रेस नोट"), em.headline)
     check("email: signature and quoted mail removed", em.body == "अजमेर में 20 अक्टूबर को रोजगार मेला लगेगा।", repr(em.body))
     em_media = db.scalars(select(Media).where(Media.item_id == em.id)).all()
     check("email: inline logo skipped", [m.original_name for m in em_media] == ["press note.pdf"], str([m.original_name for m in em_media]))
     check("email: unknown sender parked for desk", em.intake_state == "needs_desk", em.intake_state)
+
+runs = desk.get("/desk/fetch-runs").json()["runs"]
+check("desk: fetch history for WhatsApp and Outlook", {r["source"] for r in runs} == {"whatsapp", "outlook"}
+      and all(r["added"] == 1 for r in runs), str(runs))
 
 # 5. Decisions
 r = desk.post(f"/desk/items/{item_id}/reject", json={"reason": "bad"})

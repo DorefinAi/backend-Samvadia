@@ -19,7 +19,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.events import emit, item_changed
-from app.intake import WAITING_STATES, add_media, add_message, find_reporter, finalize, schedule_finalize
+from app.intake import WAITING_STATES, add_media, add_message, find_reporter, finalize, record_fetch, schedule_finalize
 from app.jobs import RetryLater, enqueue, now
 from app.models import KV, Event, Item, Job, Media
 from app.services import ftp, mail, storage, whatsapp
@@ -169,12 +169,13 @@ def media_download_failed(db: Session, payload: dict, error: str) -> None:
 def fetch_mail(db: Session, payload: dict) -> None:
     state = db.get(KV, "mail_delta")
     messages, delta_link = mail.inbox_delta(state.value["link"] if state else None)
+    new_titles: list[str] = []
     for m in messages:
         sender = ((m.get("from") or {}).get("emailAddress") or {})
         address = (sender.get("address") or "").lower()
         received = datetime.fromisoformat(m["receivedDateTime"].replace("Z", "+00:00"))
         result = add_message(
-            db, source="email", external_id=m["id"], sender_contact=address, sender_name=sender.get("name"),
+            db, source="outlook", external_id=m["id"], sender_contact=address, sender_name=sender.get("name"),
             text=mail.clean_body((m.get("body") or {}).get("content", "")), received_at=received,
             raw={k: m.get(k) for k in ("subject", "internetMessageId", "conversationId", "body")},
             conversation_key=m.get("conversationId") or m["id"], reporter=find_reporter(db, email=address),
@@ -183,22 +184,25 @@ def fetch_mail(db: Session, payload: dict) -> None:
         if result is None:
             continue
         item, message, created = result
+        if created:
+            new_titles.append(item.headline)
         if m.get("hasAttachments"):
             for a in mail.list_attachments(m["id"]):
                 kind = a.get("@odata.type", "")
                 if a.get("isInline"):
                     continue  # signature logos and pasted images
                 if kind.endswith("referenceAttachment"):  # OneDrive/SharePoint link, not a file
-                    add_media(db, item, source="email", state="link_only", message=message,
+                    add_media(db, item, source="outlook", state="link_only", message=message,
                               original_name=a.get("name"), received_at=received)
                     continue
-                media = add_media(db, item, source="email", state="downloading", message=message,
+                media = add_media(db, item, source="outlook", state="downloading", message=message,
                                   original_name=a.get("name"), content_type=a.get("contentType"),
                                   external_ref=f"{m['id']}/{a['id']}", size_bytes=a.get("size"), received_at=received)
                 enqueue(db, "fetch_mail_attachment", {"media_id": str(media.id)})
         item_changed(db, item, "item.created" if created else "item.updated")
         schedule_finalize(db, item, delay=5)
     db.merge(KV(key="mail_delta", value={"link": delta_link}))
+    record_fetch(db, "outlook", new_titles, always=bool(payload.get("manual")))
 
 
 def fetch_mail_attachment(db: Session, payload: dict) -> None:

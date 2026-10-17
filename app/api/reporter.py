@@ -25,6 +25,15 @@ from app.services.filenames import safe_name
 router = APIRouter(prefix="/reporter", tags=["reporter portal"])
 
 
+def clean_tags(tags: list[str]) -> list[str]:
+    out: list[str] = []
+    for tag in tags:
+        tag = " ".join(tag.split())[:40]
+        if tag and tag.lower() not in (t.lower() for t in out):
+            out.append(tag)
+    return out
+
+
 class FileIn(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     size: int = Field(gt=0)
@@ -37,6 +46,7 @@ class ReportIn(BaseModel):
     subject: str | None = Field(default=None, max_length=80)  # English keywords for the slug, optional
     story_type: str | None = None
     notes: str | None = Field(default=None, max_length=2000)
+    tags: list[str] = Field(default_factory=list, max_length=10)  # e.g. "Breaking News", "Politics"
     files: list[FileIn] = Field(default_factory=list, max_length=20)
 
 
@@ -68,6 +78,9 @@ def create_report(body: ReportIn, caller: Caller = Depends(require("report.submi
                     received_at=now(), headline=body.headline.strip(), body=text.strip())
     item.slug_subject = (body.subject or "").strip() or None
     item.story_type = body.story_type
+    item.tags = clean_tags(body.tags)
+    if any("breaking" in t.lower() for t in item.tags):
+        item.priority = "breaking"
     uploads = []
     for f in body.files:
         media = add_media(db, item, source="portal", state="awaiting_upload", original_name=safe_name(f.name) or None,

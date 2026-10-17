@@ -33,6 +33,8 @@ portal / email / WhatsApp
   - OneDrive links are kept as `link_only`.
 - **Records for training:** every raw message is kept in `messages`. Every desk decision is appended to `decisions`, together with a snapshot of the item as the desk saw it.
 
+The digital desk (Socia) gets its own backend repo and service. The only link between the two is the FTP slug folders.
+
 ## Not built yet
 
 - The RSS feed to Octopus
@@ -89,16 +91,20 @@ Every request sends cookies (`credentials: "include"`). Every POST, PATCH, PUT a
 | Screen | Calls |
 |---|---|
 | Login (all apps) | `POST /auth/login {username, password}`, `GET /me`, `POST /auth/logout` |
-| Reporter: file a report | 1. `POST /reporter/items {headline, body, subject?, story_type?, notes?, files:[{name,size,content_type}]}` returns `uploads[]`<br>2. `PUT` each file to its `upload_url` (body = the file)<br>3. `POST /reporter/items/{id}/submit` |
+| Reporter: file a report | 1. `POST /reporter/items {headline, body, subject?, story_type?, notes?, tags?, files:[{name,size,content_type}]}` returns `uploads[]`. A tag containing "breaking" sets priority `breaking`<br>2. `PUT` each file to its `upload_url` (body = the file)<br>3. `POST /reporter/items/{id}/submit` |
 | Reporter: my reports | `GET /reporter/items`. Each `status` is `submitted`, `reviewing`, `published` or `rejected` |
 | Desk inbox | `GET /desk/items?review_state=&source=&q=&before=`, `GET /desk/items/{id}` |
-| Desk edit / reporter picker | `PATCH /desk/items/{id} {version, headline?, body?, slug_subject?, story_type?, reporter_id?, slug?}` (409 if `version` is stale), `GET /desk/reporters?q=`, `POST /desk/reporters` (admin) |
+| Desk edit / reporter picker | `PATCH /desk/items/{id} {version, headline?, body?, slug_subject?, story_type?, reporter_id?, category?, priority?, tags?, city_code?, slug?}` (409 if `version` is stale; a hand-typed `slug` sticks until `POST /desk/items/{id}/slug/reset`), `GET /desk/reporters?q=`, `POST /desk/reporters` (admin) |
+| Desk pick-lists | `GET /desk/locations` returns locations, categories, priorities, story types and reject reasons |
+| Desk fetch history | `GET /desk/fetch-runs` (what each WhatsApp or Outlook pull added) |
 | Desk decisions | `POST /desk/items/{id}/approve`, `.../reject {reason, note?}`, `.../reopen` |
 | Desk retries | `POST /desk/items/{id}/retry-ftp`, `POST /desk/media/{id}/retry`, `POST /desk/refresh` |
 | Access page | `GET/POST /admin/users`, `PATCH /admin/users/{id}` |
 | Live updates | `new EventSource(API + "/events?app=desk", {withCredentials: true})`, or `app=reporter` |
 
+Sources are `portal`, `outlook` and `whatsapp`. Priorities are `normal`, `high` and `breaking`.
 The reject reasons are `duplicate`, `not_newsworthy`, `poor_visuals`, `unverified` and `other`.
+A story's city is the reporter's city unless the desk sets `city_code`. Changing it rebuilds the slug and renames the FTP folder.
 Story types are `AV`, `PKG` and `SF`. If the reporter gives none, `DEFAULT_STORY_TYPE` is used.
 
 ## Where things live

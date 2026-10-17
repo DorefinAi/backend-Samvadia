@@ -9,7 +9,7 @@ from starlette.concurrency import run_in_threadpool
 from app.config import get_settings
 from app.db import session_scope
 from app.events import item_changed
-from app.intake import add_media, add_message, find_reporter, schedule_finalize
+from app.intake import add_media, add_message, find_reporter, record_fetch, schedule_finalize
 from app.jobs import enqueue
 from app.services import whatsapp
 
@@ -42,6 +42,7 @@ def _store(payload: dict) -> None:
 
 def _store_messages(db: Session, payload: dict) -> None:
     merge = get_settings().whatsapp_merge_seconds
+    new_titles: list[str] = []
     for msg in whatsapp.parse_webhook(payload):
         result = add_message(
             db, source="whatsapp", external_id=msg.id, sender_contact=msg.wa_id, sender_name=msg.sender_name,
@@ -51,6 +52,8 @@ def _store_messages(db: Session, payload: dict) -> None:
         if result is None:
             continue  # Meta delivered this message before
         item, message, created = result
+        if created:
+            new_titles.append(item.headline or msg.sender_name or msg.wa_id)
         if msg.media_id:
             media = add_media(db, item, source="whatsapp", state="downloading", message=message,
                               original_name=msg.filename, content_type=msg.mime_type, external_ref=msg.media_id,
@@ -59,3 +62,4 @@ def _store_messages(db: Session, payload: dict) -> None:
         # Texts, photos and a voice note sent within the merge window become one item.
         schedule_finalize(db, item, delay=merge)
         item_changed(db, item, "item.created" if created else "item.updated")
+    record_fetch(db, "whatsapp", new_titles)

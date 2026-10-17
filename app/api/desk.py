@@ -12,7 +12,10 @@ from app.db import get_db
 from app.events import item_changed
 from app.intake import schedule_finalize, slug_for
 from app.jobs import enqueue, now
-from app.models import REJECT_REASONS, STORY_TYPES, Audit, Decision, Item, Media, Reporter
+from app.api.reporter import clean_tags
+from app.models import (
+    CATEGORIES, PRIORITIES, REJECT_REASONS, STORY_TYPES, Audit, Decision, FetchRun, Item, Location, Media, Reporter,
+)
 from app.security import Caller, require
 from app.serialize import item_out, reporter_out
 from app.services.slug import SlugError, slug_error
@@ -68,7 +71,11 @@ class ItemPatch(BaseModel):
     slug_subject: str | None = Field(default=None, max_length=80)
     story_type: str | None = None
     reporter_id: uuid.UUID | None = None
-    slug: str | None = None  # set by hand; must pass the slug check
+    category: str | None = None
+    priority: str | None = None
+    tags: list[str] | None = Field(default=None, max_length=10)
+    city_code: str | None = None  # this story's location, if not the reporter's city
+    slug: str | None = None  # set by hand; must pass the slug check, and stops automatic rebuilds
 
 
 @router.patch("/items/{item_id}")
@@ -80,6 +87,18 @@ def edit_item(item_id: uuid.UUID, patch: ItemPatch, caller: Caller = Depends(req
         raise HTTPException(409, "Someone else changed this story. Reload it and try again.")
     if patch.story_type is not None and patch.story_type not in STORY_TYPES:
         raise HTTPException(422, f"story_type must be one of {', '.join(STORY_TYPES)}.")
+    if patch.category is not None and patch.category not in CATEGORIES:
+        raise HTTPException(422, f"category must be one of {', '.join(CATEGORIES)}.")
+    if patch.priority is not None and patch.priority not in PRIORITIES:
+        raise HTTPException(422, f"priority must be one of {', '.join(PRIORITIES)}.")
+    if patch.city_code == "":
+        patch.city_code = None  # back to the reporter's city
+    if patch.city_code:
+        patch.city_code = patch.city_code.upper()
+        if not db.scalar(select(Location.code).where(Location.code == patch.city_code, Location.active)):
+            raise HTTPException(422, f"Unknown location code {patch.city_code}.")
+    if patch.tags is not None:
+        patch.tags = clean_tags(patch.tags)
     before = _snapshot(item)
     fields = patch.model_dump(exclude_unset=True, exclude={"version", "slug"})
     if "reporter_id" in fields and fields["reporter_id"] is not None and db.get(Reporter, fields["reporter_id"]) is None:
@@ -90,15 +109,15 @@ def edit_item(item_id: uuid.UUID, patch: ItemPatch, caller: Caller = Depends(req
     db.refresh(item)  # reload the reporter relationship
 
     old_slug, old_folder = item.slug, item.ftp_folder
-    slug_inputs_changed = bool({"slug_subject", "story_type", "reporter_id"} & fields.keys())
+    slug_inputs_changed = bool({"slug_subject", "story_type", "reporter_id", "city_code"} & fields.keys())
     if patch.slug is not None:
         error = slug_error(patch.slug)
         if error:
             raise HTTPException(422, error)
         if db.scalar(select(Item.id).where(Item.slug == patch.slug, Item.id != item.id)):
             raise HTTPException(409, f"Slug {patch.slug} is already used by another story.")
-        item.slug = patch.slug
-    elif slug_inputs_changed and item.reporter_id:
+        item.slug, item.slug_edited = patch.slug, True
+    elif slug_inputs_changed and item.reporter_id and not item.slug_edited:
         try:
             item.slug = slug_for(db, item)
         except SlugError as e:
@@ -111,6 +130,26 @@ def edit_item(item_id: uuid.UUID, patch: ItemPatch, caller: Caller = Depends(req
 
     item.version += 1
     db.add(Audit(actor_id=caller.user.id, action="item.edit", target_type="item", target_id=str(item.id),
+                 before=before, after=_snapshot(item)))
+    item_changed(db, item)
+    db.commit()
+    return {"item": item_out(item, full=True)}
+
+
+@router.post("/items/{item_id}/slug/reset")
+def reset_slug(item_id: uuid.UUID, caller: Caller = Depends(require("desk.review")), db: Session = Depends(get_db)):
+    """Drop a hand-typed slug and rebuild it from the reporter, city, subject and type."""
+    item = _item(db, item_id, lock=True)
+    before, old_slug, old_folder = _snapshot(item), item.slug, item.ftp_folder
+    item.slug_edited = False
+    try:
+        item.slug = slug_for(db, item)
+    except SlugError as e:
+        raise HTTPException(422, str(e))
+    if old_folder and item.slug != old_slug:
+        enqueue(db, "ftp_rename", {"item_id": str(item.id), "old_folder": old_folder})
+    item.version += 1
+    db.add(Audit(actor_id=caller.user.id, action="item.slug_reset", target_type="item", target_id=str(item.id),
                  before=before, after=_snapshot(item)))
     item_changed(db, item)
     db.commit()
@@ -202,7 +241,7 @@ def retry_media(media_id: uuid.UUID, caller: Caller = Depends(require("desk.revi
 def refresh(caller: Caller = Depends(require("desk.fetch")), db: Session = Depends(get_db)):
     """Check the mailbox now instead of waiting for the next minute. WhatsApp arrives by itself."""
     if get_settings().mail_enabled:
-        enqueue(db, "fetch_mail", {}, dedupe_key="fetch_mail")
+        enqueue(db, "fetch_mail", {"manual": True}, dedupe_key="fetch_mail")
     db.commit()
     return {"ok": True, "mail": get_settings().mail_enabled}
 
@@ -260,6 +299,24 @@ def update_reporter(reporter_id: uuid.UUID, body: ReporterIn, caller: Caller = D
                  before=before, after=reporter_out(reporter)))
     db.commit()
     return {"reporter": reporter_out(reporter)}
+
+
+@router.get("/locations")
+def locations(caller: Caller = Depends(require("desk.view")), db: Session = Depends(get_db)):
+    rows = db.scalars(select(Location).where(Location.active).order_by(Location.name))
+    return {"locations": [{"code": l.code, "name": l.name} for l in rows],
+            "categories": list(CATEGORIES), "priorities": list(PRIORITIES), "story_types": list(STORY_TYPES),
+            "reject_reasons": list(REJECT_REASONS)}
+
+
+@router.get("/fetch-runs")
+def fetch_runs(limit: int = Query(30, le=200), caller: Caller = Depends(require("desk.view")),
+               db: Session = Depends(get_db)):
+    rows = db.scalars(select(FetchRun).order_by(FetchRun.id.desc()).limit(limit))
+    poll = get_settings().mail_poll_seconds if get_settings().mail_enabled else None
+    return {"runs": [{"id": r.id, "source": r.source, "added": r.added, "titles": list(r.titles), "at": r.at.isoformat()}
+                     for r in rows],
+            "mail_poll_seconds": poll}
 
 
 @router.get("/activity")

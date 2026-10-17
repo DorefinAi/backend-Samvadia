@@ -12,13 +12,17 @@ from sqlalchemy import (
     BigInteger, Boolean, CheckConstraint, DateTime, ForeignKey, Index, Integer, String, Text,
     UniqueConstraint, func, text,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
 
 ROLES = ("super_admin", "admin", "assignment_desk", "chief_editor", "reporter")
-SOURCES = ("portal", "email", "whatsapp")
+SOURCES = ("portal", "outlook", "whatsapp")
+PRIORITIES = ("normal", "high", "breaking")
+# Same list as assignment-desk/src/lib/slug.ts CATEGORIES
+CATEGORIES = ("Politics", "Crime", "Accident", "Courts", "Civic", "Education", "Weather", "Health", "Business",
+              "Agriculture", "Sports", "Entertainment")
 STORY_TYPES = ("AV", "PKG", "SF")
 # collecting: messages/files still arriving · needs_desk: slug cannot be built (unknown sender,
 # no usable subject); intake_note says why · uploading: slug built, files going to FTP
@@ -97,6 +101,7 @@ class Item(Base):
         CheckConstraint(_in("intake_state", INTAKE_STATES), name="items_intake_state_check"),
         CheckConstraint(_in("review_state", REVIEW_STATES), name="items_review_state_check"),
         CheckConstraint(f"story_type IS NULL OR {_in('story_type', STORY_TYPES)}", name="items_story_type_check"),
+        CheckConstraint(_in("priority", PRIORITIES), name="items_priority_check"),
         Index("items_received_idx", "received_at"),
         Index("items_conversation_idx", "source", "conversation_key"),
     )
@@ -112,7 +117,12 @@ class Item(Base):
     body: Mapped[str] = mapped_column(Text, nullable=False, server_default="", default="")
     slug_subject: Mapped[str | None] = mapped_column(Text)  # English keywords for the slug, if given
     story_type: Mapped[str | None] = mapped_column(String(8))
+    category: Mapped[str | None] = mapped_column(Text)
+    priority: Mapped[str] = mapped_column(String(16), nullable=False, server_default="normal", default="normal")
+    tags: Mapped[list[str]] = mapped_column(ARRAY(Text), nullable=False, server_default=text("'{}'"), default=list)
+    city_code: Mapped[str | None] = mapped_column(String(8))  # overrides the reporter's city for this story
     slug: Mapped[str | None] = mapped_column(String(96), unique=True)
+    slug_edited: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"), default=False)
     ftp_folder: Mapped[str | None] = mapped_column(Text)
     intake_state: Mapped[str] = mapped_column(String(24), nullable=False, server_default="collecting", default="collecting")
     intake_note: Mapped[str | None] = mapped_column(Text)
@@ -238,6 +248,27 @@ class Event(Base):
     type: Mapped[str] = mapped_column(String(48), nullable=False)
     payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
     created_at: Mapped[datetime] = _created()
+
+
+class Location(Base):
+    """City codes for the slug and the desk's location picker (seeded from the desk UI's list)."""
+    __tablename__ = "locations"
+
+    code: Mapped[str] = mapped_column(String(8), primary_key=True)
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"), default=True)
+
+
+class FetchRun(Base):
+    """What each pull added: backs the desk's Refresh result and fetch history."""
+    __tablename__ = "fetch_runs"
+    __table_args__ = (CheckConstraint("source IN ('whatsapp', 'outlook', 'octopus')", name="fetch_runs_source_check"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    source: Mapped[str] = mapped_column(String(16), nullable=False)
+    added: Mapped[int] = mapped_column(Integer, nullable=False)
+    titles: Mapped[list[str]] = mapped_column(ARRAY(Text), nullable=False, server_default=text("'{}'"), default=list)
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
 
 
 class KV(Base):
