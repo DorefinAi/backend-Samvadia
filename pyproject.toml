@@ -1,0 +1,30 @@
+[project]
+name = "vartmaan-backend"
+version = "0.1.0"
+description = "Vartmaan AI backend: intake (portal, email, WhatsApp), slug builder, FTP filing, desk API"
+requires-python = ">=3.10"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "sqlalchemy>=2.0.30",
+  "psycopg[binary]>=3.2",
+  "alembic>=1.13",
+  "pydantic-settings>=2.4",
+  "httpx>=0.27",
+  "argon2-cffi>=23.1",
+  "paramiko>=3.4",
+]
+
+[project.optional-dependencies]
+# pgserver and pyftpdlib run a throwaway Postgres and FTP server for tests/smoke/run_smoke.py
+dev = ["pytest>=8", "pgserver>=0.1.4", "pyftpdlib>=2.0"]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
