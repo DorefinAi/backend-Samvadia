@@ -11,6 +11,7 @@ import httpx
 from app.config import get_settings
 
 GRAPH = "https://graph.microsoft.com/v1.0"
+MESSAGE_FIELDS = "subject,body,from,receivedDateTime,hasAttachments,conversationId,internetMessageId"
 _token: dict = {"value": "", "expires": 0.0}
 
 # Where the new text of an email ends and quoted/forwarded/signature text begins.
@@ -26,21 +27,43 @@ _CUT_MARKERS = [
     re.compile(r"^(DISCLAIMER|CONFIDENTIALITY NOTICE)\b", re.I),
     re.compile(r"^This (e-?mail|message) and any (files|attachments)", re.I),
 ]
+# Gmail and Outlook wrap a long "On <date>, <name> <address> wrote:" over two or three lines.
+_WROTE_START = re.compile(r"^On\s.+", re.I)
+_WROTE_END = re.compile(r"\bwrote:\s*$", re.I)
 
 
 def clean_body(text: str) -> str:
     """Keep the new part of the email; drop replies, forwards, signatures and disclaimers."""
     lines = (text or "").replace("\r\n", "\n").replace("\r", "\n").split("\n")
     kept: list[str] = []
-    for line in lines:
+    for i, line in enumerate(lines):
         stripped = line.strip()
         if stripped.startswith(">"):
             continue
-        if any(m.match(stripped) for m in _CUT_MARKERS) and any(k.strip() for k in kept):
+        if (any(m.match(stripped) for m in _CUT_MARKERS) or _wrapped_wrote(lines, i)) and any(k.strip() for k in kept):
             break
         kept.append(line.rstrip())
     out = "\n".join(kept).strip()
     return re.sub(r"\n{3,}", "\n\n", out)
+
+
+def _wrapped_wrote(lines: list[str], i: int) -> bool:
+    """True when line i starts an "On ... wrote:" header that ends on one of the next two lines."""
+    if not _WROTE_START.match(lines[i].strip()):
+        return False
+    joined = lines[i].strip()
+    for nxt in lines[i + 1:i + 3]:
+        joined += " " + nxt.strip()
+        if _WROTE_END.search(joined):
+            return True
+    return False
+
+
+def is_transient(error: Exception) -> bool:
+    """Throttling, a Graph outage or a dropped connection: worth trying again later without counting it."""
+    if isinstance(error, httpx.TransportError):
+        return True
+    return isinstance(error, httpx.HTTPStatusError) and error.response.status_code in (408, 429, 500, 502, 503, 504)
 
 
 def _access_token() -> str:
@@ -67,10 +90,7 @@ def _headers() -> dict:
 def inbox_delta(delta_link: str | None) -> tuple[list[dict], str]:
     """New inbox messages since the last call. Returns (messages, next delta link)."""
     s = get_settings()
-    url = delta_link or (
-        f"{GRAPH}/users/{s.ms_mailbox}/mailFolders/inbox/messages/delta"
-        "?$select=subject,body,from,receivedDateTime,hasAttachments,conversationId,internetMessageId"
-    )
+    url = delta_link or f"{GRAPH}/users/{s.ms_mailbox}/mailFolders/inbox/messages/delta?$select={MESSAGE_FIELDS}"
     messages: list[dict] = []
     with httpx.Client(timeout=60) as client:
         while True:
@@ -84,7 +104,18 @@ def inbox_delta(delta_link: str | None) -> tuple[list[dict], str]:
             return messages, body["@odata.deltaLink"]
 
 
+def get_message(message_id: str) -> dict:
+    """One message by id, the same fields as the delta. Used to retry a message that failed."""
+    s = get_settings()
+    r = httpx.get(f"{GRAPH}/users/{s.ms_mailbox}/messages/{message_id}?$select={MESSAGE_FIELDS}",
+                  headers=_headers(), timeout=60)
+    r.raise_for_status()
+    return r.json()
+
+
 def list_attachments(message_id: str) -> list[dict]:
+    """Metadata only. $select keeps Graph from sending every file inline as base64; it can also drop
+    @odata.type, so a OneDrive link is caught again when $value answers 405 or 415."""
     s = get_settings()
     r = httpx.get(
         f"{GRAPH}/users/{s.ms_mailbox}/messages/{message_id}/attachments?$select=id,name,contentType,size,isInline",

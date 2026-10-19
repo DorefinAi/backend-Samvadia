@@ -218,7 +218,7 @@ def reopen(item_id: uuid.UUID, caller: Caller = Depends(require("desk.review")),
 # --- retries and refresh ----------------------------------------------------------------------
 
 @router.post("/items/{item_id}/retry-ftp")
-def retry_ftp(item_id: uuid.UUID, caller: Caller = Depends(require("desk.review")), db: Session = Depends(get_db)):
+def retry_ftp(item_id: uuid.UUID, caller: Caller = Depends(require("ftp.manage")), db: Session = Depends(get_db)):
     item = _item(db, item_id, lock=True)
     if not item.slug:
         raise HTTPException(409, item.intake_note or "The story has no slug yet.")
@@ -372,7 +372,7 @@ def kill(item_id: uuid.UUID, caller: Caller = Depends(require("feed.manage")), d
 
 @router.get("/stories")
 def list_stories(item_id: uuid.UUID | None = None, limit: int = Query(100, le=500),
-                 caller: Caller = Depends(require("desk.view")), db: Session = Depends(get_db)):
+                 caller: Caller = Depends(require("feed.view")), db: Session = Depends(get_db)):
     """The feed page: every story with its state and when Octopus first collected it."""
     collected = collected_at_subquery().label("collected_at")
     stmt = select(Story, collected)

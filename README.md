@@ -33,6 +33,11 @@ portal / email / WhatsApp
   - Quoted replies, "Sent from my iPhone", signatures and disclaimers are removed. The raw email is kept in `messages.raw`.
   - Inline images (signature logos) are skipped.
   - OneDrive links are kept as `link_only`.
+- **When something fails**
+  - One bad email never holds up the inbox. The Outlook cursor always moves on, and the failed email is fetched again by id on the next poll (`kv.mail_retry`).
+  - Throttling and Graph outages don't count as attempts. After 3 real failures, or 24 hours, the email is dropped and logged in `kv.mail_dead`.
+  - A file over `MAX_UPLOAD_MB` (portal, WhatsApp or Outlook) is not downloaded. It shows as failed: "Ask the reporter to send it by FTP."
+- **FTP servers differ:** a server that refuses `SIZE` gets no size check after upload, `MKD` answering 521 or 553 on an existing folder is accepted, `OPTS UTF8 ON` is sent for Hindi file names, and a failed upload removes its `.part` file.
 - **Records for training:** every raw message is kept in `messages`. Every desk decision is appended to `decisions`, together with a snapshot of the item as the desk saw it.
 
 The digital desk (Socia) gets its own backend repo and service. The only link between the two is the FTP slug folders.
@@ -128,9 +133,9 @@ Every request sends cookies (`credentials: "include"`). Every POST, PATCH, PUT a
 | Desk edit / reporter picker | `PATCH /desk/items/{id} {version, headline?, body?, slug_subject?, story_type?, reporter_id?, category?, priority?, tags?, city_code?, slug?}` (409 if `version` is stale; a hand-typed `slug` sticks until `POST /desk/items/{id}/slug/reset`), `GET /desk/reporters?q=`, `POST /desk/reporters` (admin) |
 | Desk pick-lists | `GET /desk/locations` returns locations, categories, priorities, story types and reject reasons |
 | Desk fetch history | `GET /desk/fetch-runs` (what each WhatsApp or Outlook pull added) |
-| Feed page | `GET /desk/stories?item_id=` (state, `collected_at`), `POST /desk/items/{id}/publish-update` and `.../kill` (admin), `GET /desk/feed-log` (admin) |
+| Feed page (admin only) | `GET /desk/stories?item_id=` (state, `collected_at`), `POST /desk/items/{id}/publish-update` and `.../kill`, `GET /desk/feed-log` |
 | Desk decisions | `POST /desk/items/{id}/approve`, `.../reject {reason, note?}`, `.../reopen` |
-| Desk retries | `POST /desk/items/{id}/retry-ftp`, `POST /desk/media/{id}/retry`, `POST /desk/refresh` |
+| Desk retries | `POST /desk/items/{id}/retry-ftp` (admin), `POST /desk/media/{id}/retry`, `POST /desk/refresh` |
 | Access page | `GET/POST /admin/users`, `PATCH /admin/users/{id}` |
 | Live updates | `new EventSource(API + "/events?app=desk", {withCredentials: true})`, or `app=reporter` |
 

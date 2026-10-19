@@ -15,12 +15,14 @@ import shutil
 import tempfile
 from datetime import datetime, timedelta
 
+import httpx
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
 from app.events import emit, item_changed
 from app.intake import WAITING_STATES, add_media, add_message, find_reporter, finalize, record_fetch, schedule_finalize
-from app.jobs import RetryLater, enqueue, now
+from app.jobs import GiveUp, RetryLater, enqueue, now
 from app.models import KV, Event, FeedLog, Item, Job, Media
 from app.services import ftp, mail, storage, whatsapp
 from app.services.filenames import generated_name, safe_name, unique_name
@@ -140,13 +142,40 @@ def fetch_whatsapp_media(db: Session, payload: dict) -> None:
     if media is None or media.state != "downloading":
         return
     info = whatsapp.media_info(media.external_ref)  # fresh URL each attempt; they expire after 5 minutes
+    if _too_big(info.get("file_size")):
+        raise GiveUp(_too_big_note())
     _to_storage(db, media, whatsapp.stream_media(info["url"]), info.get("mime_type") or media.content_type)
+
+
+def _limit_bytes() -> int:
+    return get_settings().max_upload_mb * 1024 * 1024
+
+
+def _too_big(size: int | str | None) -> bool:
+    try:
+        return int(size or 0) > _limit_bytes()
+    except (TypeError, ValueError):
+        return False
+
+
+def _too_big_note() -> str:
+    return f"Over {get_settings().max_upload_mb} MB. Ask the reporter to send it by FTP."
+
+
+def _capped(chunks):
+    """Stop a download that runs past the size limit, for files whose declared size was missing or wrong."""
+    total = 0
+    for chunk in chunks:
+        total += len(chunk)
+        if total > _limit_bytes():
+            raise GiveUp(_too_big_note())
+        yield chunk
 
 
 def _to_storage(db: Session, media: Media, chunks, content_type: str | None) -> None:
     workdir = tempfile.mkdtemp(prefix="vai-")
     try:
-        local = storage.upload_chunks(media.storage_key, chunks, content_type, os.path.join(workdir, "f"))
+        local = storage.upload_chunks(media.storage_key, _capped(chunks), content_type, os.path.join(workdir, "f"))
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
     media.state, media.size_bytes, media.sha256, media.content_type, media.error = (
@@ -168,43 +197,102 @@ def media_download_failed(db: Session, payload: dict, error: str) -> None:
 
 # --- Outlook ----------------------------------------------------------------------------------
 
+MAIL_MAX_ATTEMPTS = 3
+MAIL_GIVE_UP_AFTER = timedelta(hours=24)  # throttling and outages do not count as attempts, but not forever
+MAIL_DEAD_KEEP = 200
+
+
 def fetch_mail(db: Session, payload: dict) -> None:
+    """The delta cursor always moves on. A message that fails goes on a retry list and is fetched
+    again by id on the next poll, so one bad email never holds up the rest of the inbox. After
+    MAIL_MAX_ATTEMPTS it is logged in kv.mail_dead and dropped."""
     state = db.get(KV, "mail_delta")
+    retry_row = db.get(KV, "mail_retry")
+    retry: dict[str, dict] = dict(retry_row.value) if retry_row else {}
     messages, delta_link = mail.inbox_delta(state.value["link"] if state else None)
+    in_delta = {m["id"] for m in messages}
+    for message_id in [i for i in retry if i not in in_delta]:
+        try:
+            messages.append(mail.get_message(message_id))
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:  # deleted from the inbox since
+                retry.pop(message_id)
+            else:
+                _mail_failed(db, retry, message_id, e)
+        except Exception as e:
+            _mail_failed(db, retry, message_id, e)
+
     new_titles: list[str] = []
     for m in messages:
-        sender = ((m.get("from") or {}).get("emailAddress") or {})
-        address = (sender.get("address") or "").lower()
-        received = datetime.fromisoformat(m["receivedDateTime"].replace("Z", "+00:00"))
-        result = add_message(
-            db, source="outlook", external_id=m["id"], sender_contact=address, sender_name=sender.get("name"),
-            text=mail.clean_body((m.get("body") or {}).get("content", "")), received_at=received,
-            raw={k: m.get(k) for k in ("subject", "internetMessageId", "conversationId", "body")},
-            conversation_key=m.get("conversationId") or m["id"], reporter=find_reporter(db, email=address),
-            subject=m.get("subject"),
-        )
-        if result is None:
+        try:
+            with db.begin_nested():  # a failure undoes only this message
+                title = _ingest_mail(db, m)
+        except Exception as e:
+            log.warning("mail %s failed: %s: %s", m.get("id"), type(e).__name__, e)
+            _mail_failed(db, retry, m["id"], e)
             continue
-        item, message, created = result
-        if created:
-            new_titles.append(item.headline)
-        if m.get("hasAttachments"):
-            for a in mail.list_attachments(m["id"]):
-                kind = a.get("@odata.type", "")
-                if a.get("isInline"):
-                    continue  # signature logos and pasted images
-                if kind.endswith("referenceAttachment"):  # OneDrive/SharePoint link, not a file
-                    add_media(db, item, source="outlook", state="link_only", message=message,
-                              original_name=a.get("name"), received_at=received)
-                    continue
-                media = add_media(db, item, source="outlook", state="downloading", message=message,
+        retry.pop(m["id"], None)
+        if title:
+            new_titles.append(title)
+    db.merge(KV(key="mail_delta", value={"link": delta_link}))
+    db.merge(KV(key="mail_retry", value=retry))
+    record_fetch(db, "outlook", new_titles, always=bool(payload.get("manual")))
+
+
+def _ingest_mail(db: Session, m: dict) -> str | None:
+    """One email -> item, message and attachment jobs. Returns the headline when it started a new item."""
+    sender = ((m.get("from") or {}).get("emailAddress") or {})
+    address = (sender.get("address") or "").lower()
+    received = datetime.fromisoformat(m["receivedDateTime"].replace("Z", "+00:00"))
+    result = add_message(
+        db, source="outlook", external_id=m["id"], sender_contact=address, sender_name=sender.get("name"),
+        text=mail.clean_body((m.get("body") or {}).get("content", "")), received_at=received,
+        raw={k: m.get(k) for k in ("subject", "internetMessageId", "conversationId", "body")},
+        conversation_key=m.get("conversationId") or m["id"], reporter=find_reporter(db, email=address),
+        subject=m.get("subject"),
+    )
+    if result is None:
+        return None
+    item, message, created = result
+    if m.get("hasAttachments"):
+        for a in mail.list_attachments(m["id"]):
+            kind = a.get("@odata.type", "")
+            if a.get("isInline"):
+                continue  # signature logos and pasted images
+            if kind.endswith("referenceAttachment"):  # OneDrive/SharePoint link, not a file
+                add_media(db, item, source="outlook", state="link_only", message=message,
+                          original_name=a.get("name"), received_at=received)
+                continue
+            if _too_big(a.get("size")):
+                media = add_media(db, item, source="outlook", state="failed", message=message,
                                   original_name=a.get("name"), content_type=a.get("contentType"),
                                   external_ref=f"{m['id']}/{a['id']}", size_bytes=a.get("size"), received_at=received)
-                enqueue(db, "fetch_mail_attachment", {"media_id": str(media.id)})
-        item_changed(db, item, "item.created" if created else "item.updated")
-        schedule_finalize(db, item, delay=5)
-    db.merge(KV(key="mail_delta", value={"link": delta_link}))
-    record_fetch(db, "outlook", new_titles, always=bool(payload.get("manual")))
+                media.error = _too_big_note()
+                continue
+            media = add_media(db, item, source="outlook", state="downloading", message=message,
+                              original_name=a.get("name"), content_type=a.get("contentType"),
+                              external_ref=f"{m['id']}/{a['id']}", size_bytes=a.get("size"), received_at=received)
+            enqueue(db, "fetch_mail_attachment", {"media_id": str(media.id)})
+    item_changed(db, item, "item.created" if created else "item.updated")
+    schedule_finalize(db, item, delay=5)
+    return item.headline if created else None
+
+
+def _mail_failed(db: Session, retry: dict[str, dict], message_id: str, error: Exception) -> None:
+    entry = retry.get(message_id) or {"attempts": 0, "first_failed_at": now().isoformat()}
+    if not mail.is_transient(error):
+        entry["attempts"] += 1
+    entry["error"] = f"{type(error).__name__}: {error}"[:300]
+    expired = now() - datetime.fromisoformat(entry["first_failed_at"]) > MAIL_GIVE_UP_AFTER
+    if entry["attempts"] < MAIL_MAX_ATTEMPTS and not expired:
+        retry[message_id] = entry
+        return
+    retry.pop(message_id, None)
+    log.error("mail %s dropped after %s attempts: %s", message_id, entry["attempts"], entry["error"])
+    dead = db.get(KV, "mail_dead")
+    entries = list(dead.value.get("messages", [])) if dead else []
+    entries.append({"id": message_id, **entry, "dropped_at": now().isoformat()})
+    db.merge(KV(key="mail_dead", value={"messages": entries[-MAIL_DEAD_KEEP:]}))
 
 
 def fetch_mail_attachment(db: Session, payload: dict) -> None:
@@ -212,7 +300,16 @@ def fetch_mail_attachment(db: Session, payload: dict) -> None:
     if media is None or media.state != "downloading":
         return
     message_id, attachment_id = media.external_ref.split("/", 1)
-    _to_storage(db, media, mail.stream_attachment(message_id, attachment_id), media.content_type)
+    try:
+        _to_storage(db, media, mail.stream_attachment(message_id, attachment_id), media.content_type)
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code not in (405, 415):
+            raise
+        # A OneDrive/SharePoint link or a forwarded item that Graph cannot hand over as a file
+        media.state, media.error = "link_only", "A link, not a file. Open the email in Outlook to get it."
+        item = db.get(Item, media.item_id)
+        if item:
+            item_changed(db, item)
 
 
 # --- housekeeping -----------------------------------------------------------------------------

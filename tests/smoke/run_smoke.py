@@ -317,7 +317,8 @@ check("feed: update is a new story v2 titled UPDATE", r.status_code == 200 and s
 check("feed: update starts with the (( )) cancel line", story2.get("description", "").startswith(f"((पिछला संस्करण रद्द करें: {slug}))"))
 r = octo.get("/feed/feed-secret/feed.xml", headers={**OK_IP, "If-None-Match": etag})
 check("feed: changed feed answers 200 with both versions", r.status_code == 200 and r.text.count("<item>") == 2, str(r.status_code))
-stories = desk.get("/desk/stories", params={"item_id": item_id}).json()["stories"]
+check("feed: desk role cannot see stories", desk.get("/desk/stories").status_code == 403)
+stories = upd.get("/desk/stories", params={"item_id": item_id}).json()["stories"]
 v1 = next(s_ for s_ in stories if s_["version"] == 1)
 check("feed: story shows when Octopus collected it", v1["collected_at"] is not None, str(v1))
 log = upd.get("/desk/feed-log").json()
@@ -331,7 +332,7 @@ check("email: desk assigns reporter, slug built", r.status_code == 200 and r.jso
 r = desk.post(f"/desk/items/{em.id}/approve")
 check("feed: approved before upload -> story waits", r.status_code == 200 and r.json()["story"]["state"] == "waiting", r.text[:300])
 drain()
-waited = desk.get("/desk/stories", params={"item_id": str(em.id)}).json()["stories"][0]
+waited = upd.get("/desk/stories", params={"item_id": str(em.id)}).json()["stories"][0]
 check("feed: story released once files are on FTP", waited["state"] == "ready" and waited["published_at"], str(waited)[:200])
 
 # 5d. Blind flag and named queues
@@ -361,8 +362,121 @@ with session_scope() as db:
     types = {e.type for e in db.scalars(select(Event))}
     check("events: desk and reporter events recorded", {"item.created", "item.updated", "report.status", "media.on_ftp"} <= types, str(types))
 
-# 8. SSE over a real HTTP server: the desk stream receives an event emitted after it connects
+# 7b. Outlook: one bad email never holds the cursor; failures retry by id, then go to mail_dead
 import httpx  # noqa: E402
+
+from app.models import KV, Message  # noqa: E402
+
+
+def graph_error(code):
+    request = httpx.Request("GET", "https://graph.microsoft.com/x")
+    return httpx.HTTPStatusError(f"{code}", request=request, response=httpx.Response(code, request=request))
+
+
+def mail_msg(mid, conv, subject):
+    return {"id": mid, "subject": subject, "conversationId": conv, "hasAttachments": True,
+            "receivedDateTime": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "from": {"emailAddress": {"name": "PRO " + mid, "address": f"{mid.lower()}@example.com"}},
+            "body": {"content": subject + " पूरी खबर।"}}
+
+
+polls = {"n": 0, "throttled": 0}
+MAILS = {m["id"]: m for m in [mail_msg("MAILBAD", "CB", "Unreadable mail"), mail_msg("MAILGOOD", "CG", "भीलवाड़ा में मेला"),
+                              mail_msg("MAILSLOW", "CS", "Throttled mail")]}
+
+
+def fake_delta(link):
+    polls["n"] += 1
+    return (list(MAILS.values()) if polls["n"] == 1 else []), f"DELTA-{polls['n']}"
+
+
+def fake_attachments(mid):
+    if mid == "MAILBAD":
+        raise ValueError("attachment metadata unreadable")
+    if mid == "MAILSLOW" and polls["throttled"] < 1:
+        polls["throttled"] += 1
+        raise graph_error(429)
+    if mid == "MAILGOOD":
+        return [
+            {"@odata.type": "#microsoft.graph.fileAttachment", "id": "RAW", "name": "raw.mov", "contentType": "video/quicktime",
+             "size": 5 * 1024 * 1024, "isInline": False},  # declared over the limit: never downloaded
+            {"id": "LINK", "name": "photos (OneDrive)", "contentType": None, "size": 900, "isInline": False},  # no @odata.type
+            {"@odata.type": "#microsoft.graph.fileAttachment", "id": "LIAR", "name": "clip.mp4", "contentType": "video/mp4",
+             "size": 10, "isInline": False},  # declares 10 bytes, streams over the limit
+            {"@odata.type": "#microsoft.graph.fileAttachment", "id": "PDF", "name": "note.pdf", "contentType": "application/pdf",
+             "size": 7, "isInline": False},
+        ]
+    return []
+
+
+def fake_stream(mid, aid):
+    if aid == "LINK":
+        raise graph_error(405)
+    if aid == "LIAR":
+        yield from [b"x" * 700_000, b"x" * 700_000]
+        return
+    yield b"PDFDATA"
+
+
+mail.inbox_delta, mail.list_attachments, mail.stream_attachment = fake_delta, fake_attachments, fake_stream
+mail.get_message = lambda mid: MAILS[mid]
+with session_scope() as db:
+    db.query(KV).filter(KV.key.in_(["mail_retry", "mail_dead"])).delete()
+settings_ = get_settings()
+old_limit, settings_.max_upload_mb = settings_.max_upload_mb, 1
+
+
+def poll_mail():
+    with session_scope() as db:
+        jobs.enqueue(db, "fetch_mail", {})
+    drain()
+
+
+def kv(key):
+    with session_scope() as db:
+        row = db.get(KV, key)
+        return row.value if row else {}
+
+
+poll_mail()
+retry = kv("mail_retry")
+with session_scope() as db:
+    good = db.scalar(select(Item).join(Message).where(Message.external_id == "MAILGOOD"))
+    check("mail: good email ingested next to a bad one", good is not None)
+    check("mail: cursor advanced despite the bad email", kv("mail_delta").get("link") == "DELTA-1", str(kv("mail_delta")))
+    check("mail: bad email on retry list, attempt 1", retry.get("MAILBAD", {}).get("attempts") == 1, str(retry))
+    check("mail: throttled email on retry list, not counted", retry.get("MAILSLOW", {}).get("attempts") == 0, str(retry))
+    check("mail: bad email left nothing half-written",
+          db.scalar(select(Message).where(Message.external_id == "MAILBAD")) is None)
+    media = {m.original_name: m for m in db.scalars(select(Media).where(Media.item_id == good.id))}
+    att_jobs = [j for j in db.scalars(select(Job).where(Job.type == "fetch_mail_attachment"))
+                if j.payload.get("media_id") in {str(m.id) for m in media.values()}]
+    check("mail: declared oversize file refused before download",
+          media["raw.mov"].state == "failed" and "Over 1 MB" in (media["raw.mov"].error or "")
+          and str(media["raw.mov"].id) not in [j.payload["media_id"] for j in att_jobs], str(media["raw.mov"].error))
+    check("mail: OneDrive link without @odata.type becomes link_only on 405",
+          media["photos (OneDrive)"].state == "link_only", media["photos (OneDrive)"].state)
+    liar_job = next(j for j in att_jobs if j.payload["media_id"] == str(media["clip.mp4"].id))
+    check("mail: stream over the limit fails at once, no retries",
+          media["clip.mp4"].state == "failed" and liar_job.status == "failed" and liar_job.attempts == 1,
+          f"{media['clip.mp4'].state} {liar_job.status} attempts={liar_job.attempts}")
+    check("mail: normal attachment downloaded", media["note.pdf"].state in ("in_storage", "on_ftp"), media["note.pdf"].state)
+
+poll_mail()
+retry = kv("mail_retry")
+with session_scope() as db:
+    check("mail: throttled email retried by id and ingested",
+          db.scalar(select(Message).where(Message.external_id == "MAILSLOW")) is not None and "MAILSLOW" not in retry, str(retry))
+    check("mail: bad email attempt 2", retry.get("MAILBAD", {}).get("attempts") == 2, str(retry))
+
+poll_mail()
+dead = kv("mail_dead").get("messages", [])
+check("mail: bad email dropped to mail_dead after 3 attempts",
+      kv("mail_retry") == {} and [d["id"] for d in dead] == ["MAILBAD"], f"{kv('mail_retry')} {dead}")
+check("mail: cursor kept moving", kv("mail_delta").get("link") == "DELTA-3", str(kv("mail_delta")))
+settings_.max_upload_mb = old_limit
+
+# 8. SSE over a real HTTP server: the desk stream receives an event emitted after it connects
 import uvicorn  # noqa: E402
 
 server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=8765, log_level="warning"))

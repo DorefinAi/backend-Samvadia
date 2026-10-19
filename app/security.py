@@ -32,7 +32,10 @@ PERMISSIONS: dict[str, tuple[str, ...]] = {
     "desk.review": DESK_WRITE,
     "desk.fetch": DESK_WRITE,
     "reporters.manage": ADMINS,
+    "feed.view": ADMINS,
     "feed.manage": ADMINS,
+    # FTP folders and the Octopus feed are admin-only; the desk approves, admins see where it went
+    "ftp.manage": ADMINS,
     "users.manage": ADMINS,
     "report.submit": ("reporter",),
 }

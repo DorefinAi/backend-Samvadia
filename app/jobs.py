@@ -35,6 +35,10 @@ class RetryLater(Exception):
         self.seconds = seconds
 
 
+class GiveUp(Exception):
+    """Can never work (e.g. a file over the size limit). Fails the job now, without the retries."""
+
+
 def now() -> datetime:
     return datetime.now(timezone.utc)
 
@@ -88,7 +92,7 @@ def run_one(queues: list[str] | None = None) -> bool:
     except Exception as e:
         error = f"{type(e).__name__}: {e}"
         log.warning("job %s %s attempt %s failed: %s", job.id, job.type, job.attempts, error)
-        if job.attempts < job.max_attempts:
+        if job.attempts < job.max_attempts and not isinstance(e, GiveUp):
             wait = BACKOFF_SECONDS[min(job.attempts - 1, len(BACKOFF_SECONDS) - 1)]
             _finish(job.id, status="pending", last_error=error, run_after=now() + timedelta(seconds=wait))
         else:
