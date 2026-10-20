@@ -45,7 +45,9 @@ def description_for(*, kind: str, city_hi: str, body: str, reporter: str, replac
     if kind == "kill":
         parts.append(f"((यह खबर रद्द है, प्रसारित न करें: {replaces_slug}))")
         return "\n\n".join(parts)
-    parts += [f"{city_hi}:", body.strip(), f"संवाददाता: {reporter}, {city_hi} ब्यूरो"]
+    # No city (an unknown sender with a hand-typed slug): leave out the city line and the bureau
+    byline = f"संवाददाता: {reporter}, {city_hi} ब्यूरो" if city_hi else f"संवाददाता: {reporter}"
+    parts += [f"{city_hi}:" if city_hi else "", body.strip(), byline]
     return "\n\n".join(p for p in parts if p)
 
 

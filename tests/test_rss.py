@@ -25,6 +25,11 @@ def test_description_matches_production_template():
     assert d == "उदयपुर:\n\nझीलों की नगरी में पर्यटन सीजन शुरू।\n\nसंवाददाता: सुनीता मेहता, उदयपुर ब्यूरो"
 
 
+def test_description_without_city_has_no_empty_city_line():
+    d = description_for(kind="original", city_hi="", body="अजमेर में मेला।", reporter="New Stringer")
+    assert d == "अजमेर में मेला।\n\nसंवाददाता: New Stringer"
+
+
 def test_update_starts_with_cancel_note_not_read_aloud():
     d = description_for(kind="update", city_hi="उदयपुर", body="नई जानकारी।", reporter="सुनीता", replaces_slug=SLUG)
     assert d.startswith(f"((पिछला संस्करण रद्द करें: {SLUG}))\n\nउदयपुर:")

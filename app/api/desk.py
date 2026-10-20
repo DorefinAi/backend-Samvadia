@@ -37,12 +37,20 @@ def _snapshot(item: Item) -> dict:
     return item_out(item, full=True)
 
 
+def _refuse_slug_change(db: Session, item: Item, old_slug: str | None) -> None:
+    """Once a story exists, Octopus holds (or is about to hold) its slug as the title and the newsroom opens
+    the FTP folder of that name, so the slug and the folder are frozen. Text changes go out as an UPDATE."""
+    if old_slug and item.slug != old_slug and latest_story(db, item) is not None:
+        raise HTTPException(409, f"This story is in the Octopus feed as {old_slug}, so its slug can't change. "
+                                 "Send the change as an update instead.")
+
+
 # --- inbox ------------------------------------------------------------------------------------
 
 @router.get("/items")
 def list_items(
     review_state: str | None = None, intake_state: str | None = None, source: str | None = None,
-    q: str | None = None, before: datetime | None = None, limit: int = Query(50, le=200), full: bool = False,
+    q: str | None = None, before: datetime | None = None, limit: int = Query(50, ge=1, le=200), full: bool = False,
     caller: Caller = Depends(require("desk.view")), db: Session = Depends(get_db),
 ):
     """full=true adds each item's text, files and messages, so the desk can open any of them without another call."""
@@ -127,8 +135,10 @@ def edit_item(item_id: uuid.UUID, patch: ItemPatch, caller: Caller = Depends(req
             item.slug = slug_for(db, item)
         except SlugError as e:
             raise HTTPException(422, str(e))
+    _refuse_slug_change(db, item, old_slug)
 
-    if item.intake_state == "needs_desk" and item.reporter_id:
+    # A reporter lets finalize build the slug; a hand-typed slug is enough on its own (unknown senders)
+    if item.intake_state == "needs_desk" and (item.reporter_id or item.slug):
         schedule_finalize(db, item)  # builds the slug (if needed) and uploads
     elif old_folder and item.slug != old_slug:
         enqueue(db, "ftp_rename", {"item_id": str(item.id), "old_folder": old_folder})
@@ -151,6 +161,7 @@ def reset_slug(item_id: uuid.UUID, caller: Caller = Depends(require("desk.review
         item.slug = slug_for(db, item)
     except SlugError as e:
         raise HTTPException(422, str(e))
+    _refuse_slug_change(db, item, old_slug)
     if old_folder and item.slug != old_slug:
         enqueue(db, "ftp_rename", {"item_id": str(item.id), "old_folder": old_folder})
     item.version += 1
@@ -243,8 +254,9 @@ def retry_media(media_id: uuid.UUID, caller: Caller = Depends(require("desk.revi
     task = "fetch_whatsapp_media" if media.source == "whatsapp" else "fetch_mail_attachment"
     enqueue(db, task, {"media_id": str(media.id)})
     item = db.get(Item, media.item_id)
-    if item.intake_state == "on_ftp":
-        item.intake_state = "collecting"
+    if item.intake_state in ("on_ftp", "ftp_failed"):
+        # back to collecting, or finalize skips the item and the file never reaches FTP
+        item.intake_state, item.intake_note = "collecting", None
     schedule_finalize(db, item, delay=5)
     db.commit()
     return {"ok": True}

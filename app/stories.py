@@ -13,9 +13,17 @@ from app.models import FeedLog, Item, Location, Story, User
 from app.services.rss import description_for, guid_for, read_seconds, title_for
 
 
+def _slug_city(slug: str | None) -> str:
+    """The city part of DDMMYY_CITY_SUBJECT_TYPE_REPORTER, for a hand-typed slug on a story with no reporter."""
+    parts = (slug or "").split("_")
+    return parts[1] if len(parts) > 2 else ""
+
+
 def location_for(db: Session, item: Item) -> tuple[str, str, str]:
     """(code, English name, Hindi name) for the story's city."""
     code = item.city_code or (item.reporter.city_code if item.reporter else "") or ""
+    if not code and db.get(Location, _slug_city(item.slug) or "-") is not None:
+        code = _slug_city(item.slug)
     loc = db.get(Location, code) if code else None
     if loc is None:
         return code, code, code
