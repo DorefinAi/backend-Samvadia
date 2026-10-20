@@ -26,7 +26,8 @@ def _log(ip: str, status: int, count: int, user_agent: str | None) -> None:
         db.add(FeedLog(client_ip=ip, status=status, item_count=count, user_agent=(user_agent or "")[:300]))
 
 
-@router.get("/feed/{feed_secret}/feed.xml", include_in_schema=False)
+# HEAD too: some RSS readers check for changes with HEAD before a GET
+@router.api_route("/feed/{feed_secret}/feed.xml", methods=["GET", "HEAD"], include_in_schema=False)
 def feed(feed_secret: str, request: Request):
     s = get_settings()
     ip = client_ip(request)

@@ -1,4 +1,4 @@
-"""What every channel shares: find or create the item, add messages and files, build the slug,
+r"""What every channel shares: find or create the item, add messages and files, build the slug,
 and hand the item to the FTP upload job.
 
     message/file arrives -> item (collecting) -> finalize -> slug -> uploading -> on_ftp
