@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     supabase_service_key: str = ""
     storage_bucket: str = "intake"
     max_upload_mb: int = 500
+    # "local" keeps files in LOCAL_STORAGE_DIR instead of Supabase (python -m app.devstack sets it)
+    storage_backend: str = "supabase"
+    local_storage_dir: str = ".local/storage"
+    # Where browsers reach this API; local upload links point here
+    public_api_url: str = "http://localhost:8000"
 
     ftp_protocol: str = "ftp"  # ftp | ftps | sftp
     ftp_host: str = ""

@@ -19,6 +19,11 @@ app.add_middleware(
 for module in (auth, reporter, desk, admin, webhooks, events, feed):
     app.include_router(module.router)
 
+if get_settings().storage_backend == "local":
+    from app.api import devstorage
+
+    app.include_router(devstorage.router)
+
 
 @app.get("/health")
 def health():

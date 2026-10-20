@@ -114,7 +114,7 @@ def my_reports(caller: Caller = Depends(require("report.submit")), db: Session =
     reporter = _reporter(caller)
     items = db.scalars(select(Item).where(Item.reporter_id == reporter.id)
                        .order_by(Item.received_at.desc()).limit(min(limit, 200))).all()
-    return {"items": [item_out(i) for i in items]}
+    return {"items": [{**item_out(i), "body": i.body} for i in items]}  # body: the one-line preview in the list
 
 
 @router.get("/items/{item_id}")

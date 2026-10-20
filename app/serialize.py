@@ -25,7 +25,7 @@ def media_out(m: Media) -> dict:
 
 def message_out(m: Message) -> dict:
     return {"id": str(m.id), "source": m.source, "text": m.text, "sender_contact": m.sender_contact,
-            "received_at": m.received_at.isoformat()}
+            "subject": (m.raw or {}).get("subject"), "received_at": m.received_at.isoformat()}
 
 
 def story_out(s: Story, collected_at=None) -> dict:

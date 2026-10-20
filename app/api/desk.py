@@ -5,7 +5,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.config import get_settings
 from app.db import get_db
@@ -42,9 +42,10 @@ def _snapshot(item: Item) -> dict:
 @router.get("/items")
 def list_items(
     review_state: str | None = None, intake_state: str | None = None, source: str | None = None,
-    q: str | None = None, before: datetime | None = None, limit: int = Query(50, le=200),
+    q: str | None = None, before: datetime | None = None, limit: int = Query(50, le=200), full: bool = False,
     caller: Caller = Depends(require("desk.view")), db: Session = Depends(get_db),
 ):
+    """full=true adds each item's text, files and messages, so the desk can open any of them without another call."""
     stmt = select(Item).where(Item.intake_state != "collecting" if not intake_state else Item.intake_state == intake_state)
     if review_state:
         stmt = stmt.where(Item.review_state == review_state)
@@ -56,8 +57,10 @@ def list_items(
                               Item.sender_name.ilike(like)))
     if before:
         stmt = stmt.where(Item.received_at < before)
+    if full:
+        stmt = stmt.options(selectinload(Item.media), selectinload(Item.messages))
     items = db.scalars(stmt.order_by(Item.received_at.desc()).limit(limit)).all()
-    return {"items": [item_out(i) for i in items],
+    return {"items": [item_out(i, full=full) for i in items],
             "next_before": items[-1].received_at.isoformat() if len(items) == limit else None}
 
 
