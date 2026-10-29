@@ -30,7 +30,10 @@ class Settings(BaseSettings):
     ftp_port: int = 21
     ftp_user: str = ""
     ftp_password: str = ""
-    ftp_base_dir: str = "/vartmaan/incoming"
+    # Samvadia's own uploads go to FTP_BASE_DIR/<slug>/. Everything outside FTP_WRITE_ROOT is read-only:
+    # makedirs, put, rename and delete there are refused in code (app/services/ftp.py).
+    ftp_base_dir: str = "/Vartamaan_DND"
+    ftp_write_root: str = "/Vartamaan_DND"
     ftp_passive: bool = True
     sftp_host_key: str = ""
     sftp_allow_any_host_key: bool = False
@@ -59,6 +62,17 @@ class Settings(BaseSettings):
     ms_client_secret: str = ""
     ms_mailbox: str = ""
     mail_poll_seconds: int = 60
+    # Only mail received at or after this time is taken (ISO 8601, e.g. 2026-10-27T00:00:00+05:30).
+    # Empty: the time of the first fetch is stored (kv mail_fetch_since) and used, so the first sync never
+    # imports the old inbox.
+    mail_fetch_since: str = ""
+
+    # FTP footage matcher: a story is looked for on the newsroom FTP until received + FOOTAGE_WAIT_HOURS.
+    footage_wait_hours: float = 4
+    footage_check_seconds: int = 300  # how often the worker queues a footage scan (0 = never)
+    footage_recheck_seconds: int = 240  # at most one check per item in this time
+    footage_list_cache_seconds: int = 60  # an FTP directory listing is reused for this long
+    footage_batch: int = 200  # items per scan
 
     @property
     def cors_origin_list(self) -> list[str]:

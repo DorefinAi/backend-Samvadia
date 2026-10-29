@@ -21,6 +21,7 @@ from app.security import Caller, require
 from app.serialize import item_out
 from app.services import storage
 from app.services.filenames import safe_name
+from app.services.reporter_slug import normalise_type
 
 router = APIRouter(prefix="/reporter", tags=["reporter portal"])
 
@@ -66,7 +67,9 @@ def _own_item(db: Session, caller: Caller, item_id: uuid.UUID) -> Item:
 @router.post("/items")
 def create_report(body: ReportIn, caller: Caller = Depends(require("report.submit")), db: Session = Depends(get_db)):
     reporter = _reporter(caller)
-    if body.story_type and body.story_type not in STORY_TYPES:
+    # "avb", "AVBB", "bytes" -> AVB, AVB, BYTE; anything else must already be one of the types
+    kind = (normalise_type(body.story_type) or body.story_type.strip().upper()) if body.story_type else None
+    if kind is not None and kind not in STORY_TYPES:
         raise HTTPException(422, f"story_type must be one of {', '.join(STORY_TYPES)}.")
     limit = get_settings().max_upload_mb * 1024 * 1024
     too_big = [f.name for f in body.files if f.size > limit]
@@ -77,7 +80,7 @@ def create_report(body: ReportIn, caller: Caller = Depends(require("report.submi
                     sender_contact=reporter.phone or reporter.email, conversation_key=None,
                     received_at=now(), headline=body.headline.strip(), body=text.strip())
     item.slug_subject = (body.subject or "").strip() or None
-    item.story_type = body.story_type
+    item.story_type = kind
     item.tags = clean_tags(body.tags)
     if any("breaking" in t.lower() for t in item.tags):
         item.priority = "breaking"

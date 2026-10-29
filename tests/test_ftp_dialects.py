@@ -76,45 +76,45 @@ def test_server_without_size_still_delivers(server, tmp_path):
     make_remote, root, handler = server
     handler.no_size = True
     remote = make_remote()
-    remote.makedirs("/in/SLUG")
+    remote.makedirs("/Vartamaan_DND/SLUG")
     path, size = _local(tmp_path)
-    upload_verified(remote, path, "/in/SLUG/clip.mp4", size)
-    assert (root / "in/SLUG/clip.mp4").read_bytes() == b"VIDEO-BYTES"
-    assert not (root / "in/SLUG/clip.mp4.part").exists()
+    upload_verified(remote, path, "/Vartamaan_DND/SLUG/clip.mp4", size)
+    assert (root / "Vartamaan_DND/SLUG/clip.mp4").read_bytes() == b"VIDEO-BYTES"
+    assert not (root / "Vartamaan_DND/SLUG/clip.mp4.part").exists()
 
 
 @pytest.mark.parametrize("code", ["521", "553"])
 def test_mkd_on_existing_folder(server, code):
     make_remote, root, handler = server
     handler.mkd_exists_code = code
-    (root / "in" / "SLUG").mkdir(parents=True)
-    make_remote().makedirs("/in/SLUG")  # no error
+    (root / "Vartamaan_DND" / "SLUG").mkdir(parents=True)
+    make_remote().makedirs("/Vartamaan_DND/SLUG")  # no error
 
 
 def test_mkd_refusal_that_is_not_a_folder_still_raises(server):
     make_remote, root, handler = server
     handler.mkd_exists_code = "553"
-    (root / "in").mkdir()
-    (root / "in" / "SLUG").write_bytes(b"a file, not a folder")
+    (root / "Vartamaan_DND").mkdir()
+    (root / "Vartamaan_DND" / "SLUG").write_bytes(b"a file, not a folder")
     with pytest.raises(ftplib.error_perm):
-        make_remote().makedirs("/in/SLUG")
+        make_remote().makedirs("/Vartamaan_DND/SLUG")
 
 
 def test_opts_utf8_sent_and_hindi_name_uploads(server, tmp_path):
     make_remote, root, handler = server
     remote = make_remote()
     assert "UTF8 ON" in [o.upper() for o in handler.opts_seen]
-    remote.makedirs("/in/SLUG")
+    remote.makedirs("/Vartamaan_DND/SLUG")
     path, size = _local(tmp_path)
-    upload_verified(remote, path, "/in/SLUG/प्रेस नोट.pdf", size)
-    assert (root / "in/SLUG/प्रेस नोट.pdf").exists()
+    upload_verified(remote, path, "/Vartamaan_DND/SLUG/प्रेस नोट.pdf", size)
+    assert (root / "Vartamaan_DND/SLUG/प्रेस नोट.pdf").exists()
 
 
 def test_empty_folder_answering_450_lists_as_empty(server):
     make_remote, root, handler = server
     handler.empty_nlst_450 = True
-    (root / "in").mkdir()
-    assert make_remote().listdir("/in") == []
+    (root / "Vartamaan_DND").mkdir()
+    assert make_remote().listdir("/Vartamaan_DND") == []
 
 
 class TornRemote:
@@ -140,5 +140,5 @@ def test_torn_upload_raises_and_removes_part(tmp_path):
     remote = TornRemote()
     path, size = _local(tmp_path)
     with pytest.raises(IOError, match="Size check failed"):
-        upload_verified(remote, path, "/in/SLUG/clip.mp4", size)
+        upload_verified(remote, path, "/Vartamaan_DND/SLUG/clip.mp4", size)
     assert remote.files == {}

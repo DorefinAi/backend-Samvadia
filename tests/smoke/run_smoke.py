@@ -29,7 +29,8 @@ import pgserver  # noqa: E402
 pg = pgserver.get_server(str(WORK / "pg"), cleanup_mode="stop")
 os.environ.update(
     DATABASE_URL=pg.get_uri(), COOKIE_SECURE="false", FTP_PROTOCOL="ftp", FTP_HOST="127.0.0.1", FTP_PORT="2121",
-    FTP_USER="vai", FTP_PASSWORD="vai-pass", FTP_BASE_DIR="/vartmaan/incoming", WHATSAPP_MERGE_SECONDS="0",
+    FTP_USER="vai", FTP_PASSWORD="vai-pass", FTP_BASE_DIR="/Vartamaan_DND", WHATSAPP_MERGE_SECONDS="0",
+    MAIL_FETCH_SINCE="2026-01-01T00:00:00+00:00",
     WHATSAPP_APP_SECRET="app-secret", WHATSAPP_TOKEN="wa-token", WHATSAPP_VERIFY_TOKEN="verify-me",
     MS_TENANT_ID="t", MS_CLIENT_ID="c", MS_CLIENT_SECRET="s", MS_MAILBOX="desk@example.com",
     SUPABASE_URL="http://fake-storage", SUPABASE_SERVICE_KEY="k",
@@ -90,7 +91,7 @@ storage.signed_upload_url, storage.list_sizes = fake_upload_url, fake_list_sizes
 storage.upload_chunks, storage.download, storage.delete = fake_upload_chunks, fake_download, fake_delete
 whatsapp.media_info = lambda media_id: {"url": f"https://meta/{media_id}", "mime_type": "image/jpeg"}
 whatsapp.stream_media = lambda url: iter([b"JPEGDATA-" + url.encode()])
-mail.inbox_delta = lambda link: ([{
+mail.inbox_delta = lambda link, since=None: ([{
     "id": "MAIL1", "subject": "प्रेस नोट: अजमेर में रोजगार मेला", "conversationId": "CONV1", "hasAttachments": True,
     "receivedDateTime": "2026-10-17T06:00:00Z",
     "from": {"emailAddress": {"name": "PRO Ajmer", "address": "pro.ajmer@example.com"}},
@@ -184,7 +185,7 @@ with session_scope() as db:
     check("portal: slug built", slug == datetime.now(timezone.utc).astimezone(
         __import__("app.services.slug", fromlist=["IST"]).IST).strftime("%d%m%y") + "_UDR_PARYATAN_SEASON_AV_SUNITA", slug)
     check("portal: item on FTP", item.intake_state == "on_ftp", item.intake_state + " " + str(item.intake_note))
-    names = sorted(p.name for p in (FTP_ROOT / "vartmaan/incoming" / slug).iterdir())
+    names = sorted(p.name for p in (FTP_ROOT / "Vartamaan_DND" / slug).iterdir())
     check("portal: FTP folder has original names, second renamed", names == ["IMG_0001.jpg", "IMG_0001_2.jpg"], str(names))
     check("portal: Storage emptied", not any(STORE.rglob("*.*")) and not list((STORE / "items" / item_id).glob("*")),
           str(list(STORE.rglob("*"))))
@@ -234,7 +235,7 @@ with session_scope() as db:
     wa_item = db.get(Item, wa_item.id)
     check("whatsapp: slug from Hindi text", wa_item.slug and wa_item.slug.endswith("_UDR_JAYPUR_BHARI_BARISH_AV_SUNITA"), str(wa_item.slug))
     check("whatsapp: on FTP", wa_item.intake_state == "on_ftp", wa_item.intake_state)
-    files = [p.name for p in (FTP_ROOT / "vartmaan/incoming" / wa_item.slug).iterdir()]
+    files = [p.name for p in (FTP_ROOT / "Vartamaan_DND" / wa_item.slug).iterdir()]
     check("whatsapp: photo saved with a time-based name", len(files) == 1 and files[0].endswith("_01.jpg"), str(files))
 
 # 3b. Desk moves the story to Jaipur: slug and FTP folder follow; a hand-typed slug sticks until reset
@@ -245,8 +246,8 @@ check("desk: unknown location refused", desk.patch(f"/desk/items/{wa_item.id}", 
 check("desk: unknown category refused", desk.patch(f"/desk/items/{wa_item.id}", json={"version": r.json()["item"]["version"], "category": "Gossip"}).status_code == 422)
 drain()
 moved = r.json()["item"]["slug"]
-check("desk: FTP folder renamed to new slug", (FTP_ROOT / "vartmaan/incoming" / moved).is_dir()
-      and not (FTP_ROOT / "vartmaan/incoming" / wa_item.slug).exists(), moved)
+check("desk: FTP folder renamed to new slug", (FTP_ROOT / "Vartamaan_DND" / moved).is_dir()
+      and not (FTP_ROOT / "Vartamaan_DND" / wa_item.slug).exists(), moved)
 v = r.json()["item"]["version"]
 hand = moved.rsplit("_", 3)[0] + "_RAIN_AV_SUNITA"
 r = desk.patch(f"/desk/items/{wa_item.id}", json={"version": v, "slug": hand})
@@ -287,7 +288,7 @@ check("desk: approve", approved["item"]["review_state"] == "approved")
 story1 = approved.get("story") or {}
 check("feed: approve creates a ready story (files already on FTP)", story1.get("state") == "ready", str(story1)[:200])
 check("feed: breaking story titled FLASH, GUID v1", story1.get("title") == "FLASH " + slug
-      and story1.get("guid") == f"vartmaan-{slug}-v1", str(story1)[:200])
+      and story1.get("guid") == f"vartmaan-{story1.get('id')}-v1", str(story1)[:200])
 check("feed: story text has city line and reporter line",
       story1.get("description", "").startswith("उदयपुर:\n\n") and "संवाददाता: Sunita Sharma, उदयपुर ब्यूरो" in story1.get("description", ""),
       repr(story1.get("description")))
@@ -302,7 +303,7 @@ check("feed: forged first X-Forwarded-For is 404",
       octo.get("/feed/feed-secret/feed.xml", headers={"X-Forwarded-For": "10.9.8.7, 198.51.100.9"}).status_code == 404)
 r = octo.get("/feed/feed-secret/feed.xml", headers=OK_IP)
 check("feed: allowed IP gets RSS", r.status_code == 200 and r.headers["content-type"].startswith("application/rss+xml"), str(r.status_code))
-check("feed: title in CDATA, GUID present", f"<![CDATA[FLASH {slug}]]>" in r.text and f"vartmaan-{slug}-v1" in r.text, r.text[:400])
+check("feed: title in CDATA, GUID present", f"<![CDATA[FLASH {slug}]]>" in r.text and f"vartmaan-{story1.get('id')}-v1" in r.text, r.text[:400])
 etag = r.headers.get("etag")
 r304 = octo.get("/feed/feed-secret/feed.xml", headers={**OK_IP, "If-None-Match": etag})
 check("feed: unchanged feed answers 304", r304.status_code == 304, str(r304.status_code))
@@ -313,7 +314,7 @@ login(upd, "lead", "lead-pass-1")
 r = upd.post(f"/desk/items/{item_id}/publish-update")
 story2 = r.json().get("story", {})
 check("feed: update is a new story v2 titled UPDATE", r.status_code == 200 and story2.get("title") == "UPDATE " + slug
-      and story2.get("guid") == f"vartmaan-{slug}-v2", r.text[:300])
+      and story2.get("guid") == f"vartmaan-{story2.get('id')}-v2", r.text[:300])
 check("feed: update starts with the (( )) cancel line", story2.get("description", "").startswith(f"((पिछला संस्करण रद्द करें: {slug}))"))
 r = octo.get("/feed/feed-secret/feed.xml", headers={**OK_IP, "If-None-Match": etag})
 check("feed: changed feed answers 200 with both versions", r.status_code == 200 and r.text.count("<item>") == 2, str(r.status_code))
@@ -385,7 +386,7 @@ MAILS = {m["id"]: m for m in [mail_msg("MAILBAD", "CB", "Unreadable mail"), mail
                               mail_msg("MAILSLOW", "CS", "Throttled mail")]}
 
 
-def fake_delta(link):
+def fake_delta(link, since=None):
     polls["n"] += 1
     return (list(MAILS.values()) if polls["n"] == 1 else []), f"DELTA-{polls['n']}"
 

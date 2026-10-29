@@ -1,9 +1,14 @@
 """Integration tests: the real API, job queue, migrations, Postgres (pgserver) and FTP (pyftpdlib).
 
     .venv/Scripts/python -m pytest tests/integration
+    TEST_DATABASE_URL=postgresql://... .venv/Scripts/python -m pytest tests/integration   # an installed Postgres
+
+With TEST_DATABASE_URL the tests use that database instead of a throwaway pgserver one. Every table in it
+is emptied before each test, so point it at a database kept for tests only. It needs pgvector enabled.
 
 Supabase Storage, Meta and Microsoft Graph are replaced by local fakes, as in tests/smoke/run_smoke.py.
-Every test starts from empty tables, an empty FTP folder and an empty fake Storage.
+Every test starts from empty tables, an empty FTP folder and an empty fake Storage. The `newsroom_ftp` fixture
+fills the FTP with a copy of the real newsroom tree's folder names (fixtures/ftp_tree.json) and tiny files.
 """
 import hashlib
 import hmac
@@ -43,12 +48,11 @@ class Stack:
         self.mail_attachments: dict[str, list[dict]] = {}
 
     def ftp_folder(self, slug: str) -> Path:
-        return self.ftp_root / "vartmaan" / "incoming" / slug
+        return self.ftp_root / "Vartamaan_DND" / slug
 
 
 @pytest.fixture(scope="session")
 def stack():
-    import pgserver
     from pyftpdlib.authorizers import DummyAuthorizer
     from pyftpdlib.handlers import FTPHandler
     from pyftpdlib.servers import FTPServer
@@ -57,11 +61,17 @@ def stack():
     st = Stack(work, _free_port())
     st.ftp_root.mkdir()
     st.store.mkdir()
-    pg = pgserver.get_server(str(work / "pg"), cleanup_mode="stop")
+    pg = None
+    database_url = os.environ.get("TEST_DATABASE_URL")
+    if not database_url:
+        import pgserver
+        pg = pgserver.get_server(str(work / "pg"), cleanup_mode="stop")
+        database_url = pg.get_uri()
 
     os.environ.update(
-        DATABASE_URL=pg.get_uri(), COOKIE_SECURE="false", FTP_PROTOCOL="ftp", FTP_HOST="127.0.0.1",
-        FTP_PORT=str(st.ftp_port), FTP_USER="vai", FTP_PASSWORD="vai-pass", FTP_BASE_DIR="/vartmaan/incoming",
+        DATABASE_URL=database_url, COOKIE_SECURE="false", FTP_PROTOCOL="ftp", FTP_HOST="127.0.0.1",
+        FTP_PORT=str(st.ftp_port), FTP_USER="vai", FTP_PASSWORD="vai-pass", FTP_BASE_DIR="/Vartamaan_DND",
+        FTP_WRITE_ROOT="/Vartamaan_DND", MAIL_FETCH_SINCE="2026-01-01T00:00:00+00:00", FOOTAGE_LIST_CACHE_SECONDS="0",
         WHATSAPP_MERGE_SECONDS="0", WHATSAPP_APP_SECRET="app-secret", WHATSAPP_TOKEN="wa-token",
         WHATSAPP_VERIFY_TOKEN="verify-me", MS_TENANT_ID="t", MS_CLIENT_ID="c", MS_CLIENT_SECRET="s",
         MS_MAILBOX="desk@example.com", SUPABASE_URL="http://fake-storage", SUPABASE_SERVICE_KEY="k",
@@ -95,7 +105,8 @@ def stack():
     _install_fakes(st)
     yield st
     ftpd.close_all()
-    pg.cleanup()
+    if pg is not None:
+        pg.cleanup()
     shutil.rmtree(work, ignore_errors=True)
 
 
@@ -136,7 +147,7 @@ def _install_fakes(st: Stack) -> None:
     whatsapp.media_info = media_info
     whatsapp.stream_media = lambda url: iter([st.wa_media.get(url.rsplit("/", 1)[1], b"JPEG-" + url.rsplit("/", 1)[1].encode())])
 
-    mail.inbox_delta = lambda link: (list(st.mail_batch), "DELTA-NEXT")
+    mail.inbox_delta = lambda link, since=None: (list(st.mail_batch), "DELTA-NEXT")
     mail.list_attachments = lambda mid: st.mail_attachments.get(mid, [])
     mail.stream_attachment = lambda mid, aid: iter([b"ATTACHMENT-" + aid.encode()])
     mail.get_message = lambda mid: next(m for m in st.mail_batch if m["id"] == mid)
@@ -153,7 +164,7 @@ def _install_fakes(st: Stack) -> None:
 
 @pytest.fixture(autouse=True)
 def clean(stack):
-    """Empty tables (locations stay: they are seeded by a migration), FTP and Storage."""
+    """Empty tables (locations and the decision lookups stay: they are seeded by migrations), FTP and Storage."""
     from sqlalchemy import text
 
     from app.db import session_scope
@@ -161,12 +172,14 @@ def clean(stack):
 
     with session_scope() as db:
         tables = [r[0] for r in db.execute(text(
-            "SELECT tablename FROM pg_tables WHERE schemaname = 'public' "
-            "AND tablename NOT IN ('alembic_version', 'locations')"))]
+            "SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename NOT IN "
+            "('alembic_version', 'locations', 'decision_actions', 'reject_reasons', 'approve_reasons')"))]
         db.execute(text(f"TRUNCATE {', '.join(tables)} RESTART IDENTITY CASCADE"))
     for folder in (stack.ftp_root, stack.store):
         shutil.rmtree(folder, ignore_errors=True)
         folder.mkdir()
+    from app.services import footage
+    footage.clear_cache()
     stack.ftp_up = True
     stack.wa_media.clear()
     stack.wa_fail.clear()
@@ -177,6 +190,42 @@ def clean(stack):
 
 
 # --- helpers ------------------------------------------------------------------------------------
+
+MEDIA_EXT = (".mp4", ".mov", ".jpg", ".jpeg", ".mpg", ".mts", ".mxf")
+
+
+@pytest.fixture
+def newsroom_ftp(stack):
+    """The local FTP shaped like the real newsroom server: every top folder, and real story paths (year, month and
+    day folders spelt as the districts spell them) with tiny files. Returns a helper that adds more paths."""
+    import json
+    from datetime import datetime, timezone
+
+    tree = json.loads((Path(__file__).parent / "fixtures" / "ftp_tree.json").read_text(encoding="utf-8"))
+
+    def add(path: str, files=(), modified: str = "") -> Path:
+        target = stack.ftp_root / path.strip("/")
+        if not files and target.suffix.lower() in MEDIA_EXT:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(b"x" * 7)  # a loose file named with the slug (ALWER)
+            return target
+        target.mkdir(parents=True, exist_ok=True)
+        for f in files:
+            name = f["name"] if isinstance(f, dict) else f
+            (target / name).parent.mkdir(parents=True, exist_ok=True)
+            (target / name).write_bytes(b"x" * 5)
+            stamp = (f.get("modified") if isinstance(f, dict) else "") or modified
+            if stamp:
+                t = datetime.strptime(stamp[:14], "%Y%m%d%H%M%S").replace(tzinfo=timezone.utc).timestamp()
+                os.utime(target / name, (t, t))
+        return target
+
+    for top in tree["tops"]:
+        (stack.ftp_root / top).mkdir(parents=True, exist_ok=True)
+    for story in tree["stories"]:
+        add(story["path"], story["files"])
+    return add
+
 
 PASSWORD = "test-pass-123"
 

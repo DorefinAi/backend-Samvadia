@@ -15,8 +15,13 @@ def test_title_prefixes():
     assert title_for(SLUG, "kill", "normal") == "KILL " + SLUG
 
 
-def test_guid_is_deterministic():
-    assert guid_for(SLUG, 1) == f"vartmaan-{SLUG}-v1"
+STORY_ID = "0b6f3c1e-8d2a-4f7e-9c1d-2a3b4c5d6e7f"
+
+
+def test_guid_is_built_from_the_story_id_not_the_slug():
+    # reporters resend the same slug; Octopus ignores a GUID it has seen, so the slug cannot be in it
+    assert guid_for(STORY_ID, 1) == f"vartmaan-{STORY_ID}-v1"
+    assert SLUG not in guid_for(STORY_ID, 2)
 
 
 def test_description_matches_production_template():
@@ -42,7 +47,7 @@ def test_pubdate_in_india_time():
 
 def test_feed_xml_uses_cdata_and_parses():
     xml = build_feed([{"title": "FLASH " + SLUG, "description": "उदयपुर:\n\n<b>&</b> पाठ", "district": "Udaipur",
-                       "guid": guid_for(SLUG, 1), "slug": SLUG, "published_at": AT}],
+                       "guid": guid_for(STORY_ID, 1), "slug": SLUG, "published_at": AT}],
                      self_url="https://api.example/feed/s/feed.xml", link_base="https://dorefinai.com/wire")
     assert b"<![CDATA[FLASH " + SLUG.encode() + b"]]>" in xml
     assert b"<![CDATA[Udaipur]]>" in xml
@@ -50,6 +55,6 @@ def test_feed_xml_uses_cdata_and_parses():
     root = etree.fromstring(xml)
     item = root.find("channel/item")
     assert item.findtext("description") == "उदयपुर:\n\n<b>&</b> पाठ"
-    assert item.findtext("guid") == f"vartmaan-{SLUG}-v1" and item.find("guid").get("isPermaLink") == "false"
+    assert item.findtext("guid") == f"vartmaan-{STORY_ID}-v1" and item.find("guid").get("isPermaLink") == "false"
     assert item.findtext("link") == f"https://dorefinai.com/wire/{SLUG}"
     assert root.findtext("channel/language") == "hi"

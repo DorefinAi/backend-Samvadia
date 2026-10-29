@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 
 from app.db import session_scope
-from app.models import KV, Item, Media, Message
+from app.models import KV, Audit, Decision, Item, Media, Message
 from app.services.slug import IST
 
 
@@ -249,6 +249,41 @@ def test_outlook_reply_in_same_thread_joins_the_item(make_reporter, stack, drain
         assert len(db.scalars(select(Message)).all()) == 2
 
 
+def _reply_after(desk, stack, drain, action, json=None):
+    stack.mail_batch.append(mail_message())
+    run_mail_poll()
+    drain()
+    with session_scope() as db:
+        item_id = str(db.scalars(select(Item)).one().id)
+    assert desk.post(f"/desk/items/{item_id}/{action}", json=json).status_code == 200
+    stack.mail_batch[:] = [mail_message(mid="MAIL2", subject="RE: प्रेस नोट", body="एसपी की बाइट भेज दी है।",
+                                        received="2026-10-17T07:00:00Z")]
+    run_mail_poll()
+    drain()
+    with session_scope() as db:
+        items = db.scalars(select(Item)).all()
+        assert len(items) == 1, "the reply joins the same item"
+        assert "एसपी की बाइट" in items[0].body
+        assert len(db.scalars(select(Message)).all()) == 2
+        return items[0].review_state, items[0].reject_note, item_id
+
+
+def test_reply_to_a_sent_back_email_joins_it_and_reopens_it(make_reporter, stack, drain, desk):
+    make_reporter(email="pro.ajmer@example.com", phone=None)
+    review_state, note, item_id = _reply_after(desk, stack, drain, "send-back", {"note": "Send the SP's byte"})
+    assert (review_state, note) == ("pending", None)
+    with session_scope() as db:
+        audit = db.scalars(select(Audit).where(Audit.action == "item.reply_reopen")).one()
+        assert audit.target_id == item_id and audit.before["reject_note"] == "Send the SP's byte"
+        assert [d.action for d in db.scalars(select(Decision))] == ["needs_more"], "no decision row for the reply"
+
+
+def test_reply_to_a_held_email_joins_it_and_stays_held(make_reporter, stack, drain, desk):
+    make_reporter(email="pro.ajmer@example.com", phone=None)
+    review_state, _, _ = _reply_after(desk, stack, drain, "hold")
+    assert review_state == "held"
+
+
 def test_outlook_same_email_twice_is_one_message(make_reporter, stack, drain):
     make_reporter(email="pro.ajmer@example.com", phone=None)
     stack.mail_batch.append(mail_message())
@@ -265,3 +300,44 @@ def test_manual_refresh_records_a_fetch_run(desk, stack, drain):
     drain()
     runs = desk.get("/desk/fetch-runs").json()["runs"]
     assert runs and runs[0]["source"] == "outlook" and runs[0]["added"] == 0
+
+
+# --- story_type from the reporter's slug ----------------------------------------------------------------
+
+def test_slug_type_fills_story_type_on_both_channels(whatsapp_post, stack, drain):
+    """Only the 10 story types land in items.story_type (SPL stays in parsed.type), so the CHECK holds."""
+    stack.mail_batch[:] = [
+        mail_message(mid="SLUG1", sender="pooja@example.com", subject="221026_JPR_MELA_LIVE_POOJA",
+                     body="मेले का लाइव।", conversation="CONV-S1"),
+        mail_message(mid="SLUG2", sender="deepak@example.com", subject="221026_JSL_SAM_DUNES_SPL_DEEPAK",
+                     body="सम के धोरे।", conversation="CONV-S2"),
+    ]
+    run_mail_poll()
+    drain()
+    whatsapp_post([{"id": "wamid.slug1", "type": "text", "text": {"body": "221026_JPR_MELA_LIVE_POOJA\nमेला"}}],
+                  wa_id="919000000001", name="Pooja")
+    whatsapp_post([{"id": "wamid.slug2", "type": "text",
+                    "text": {"body": "221026_JSL_SAM_DUNES_SPL_DEEPAK\nधोरे"}}], wa_id="919000000002", name="Deepak")
+    drain()
+    with session_scope() as db:
+        rows = {(i.source, i.reporter_slug): i for i in db.scalars(select(Item))}
+        assert len(rows) == 4
+        for source in ("outlook", "whatsapp"):
+            live = rows[(source, "221026_JPR_MELA_LIVE_POOJA")]
+            special = rows[(source, "221026_JSL_SAM_DUNES_SPL_DEEPAK")]
+            assert live.story_type == "LIVE" and live.parsed["type"] == "LIVE"
+            assert special.story_type is None and special.parsed["type"] == "SPL"
+
+
+def test_story_type_is_written_at_intake_flush():
+    """add_message flushes the item with story_type set: the database CHECK sees the value there, not later."""
+    from app.intake import add_message
+    received = datetime(2026, 10, 22, 6, tzinfo=timezone.utc)
+    with session_scope() as db:
+        for n, subject in enumerate(("221026_JPR_MELA_LIVE_POOJA", "221026_JSL_SAM_DUNES_SPL_DEEPAK")):
+            item, _, _ = add_message(db, source="outlook", external_id=f"FLUSH{n}", sender_contact="x@example.com",
+                                     sender_name="X", text="पाठ", received_at=received, raw={"subject": subject},
+                                     conversation_key=f"CONV-F{n}", reporter=None, subject=subject)
+            db.flush()
+            stored = db.execute(select(Item.story_type).where(Item.id == item.id)).scalar_one()
+            assert stored == ("LIVE" if n == 0 else None)

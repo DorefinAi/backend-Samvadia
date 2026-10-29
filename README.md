@@ -9,7 +9,7 @@ worker (`python -m app.worker`).
 ```
 portal / email / WhatsApp
   -> item saved: text in Postgres, files in Supabase Storage (temporary)
-  -> slug built: DDMMYY_CITY_SUBJECT_TYPE_REPORTER (app/services/slug.py)
+  -> slug: the reporter's own slug made folder-safe, else built as DDMMYY_CITY_SUBJECT_TYPE_REPORTER
   -> worker creates FTP <FTP_BASE_DIR>/<slug>/ and uploads files under their original names
   -> size check, then the Storage copy is deleted
   -> desk reviews: edit, pick reporter, approve / reject (reason codes) / reopen
@@ -38,6 +38,24 @@ portal / email / WhatsApp
   - Throttling and Graph outages don't count as attempts. After 3 real failures, or 24 hours, the email is dropped and logged in `kv.mail_dead`.
   - A file over `MAX_UPLOAD_MB` (portal, WhatsApp or Outlook) is not downloaded. It shows as failed: "Ask the reporter to send it by FTP."
 - **FTP servers differ:** a server that refuses `SIZE` gets no size check after upload, `MKD` answering 521 or 553 on an existing folder is accepted, `OPTS UTF8 ON` is sent for Hindi file names, and a failed upload removes its `.part` file.
+- **The reporter's own slug (build 1)**
+  - The slug the reporter typed (subject, else the first line) is kept as `reporter_slug`, with `slug_key`
+    (a-z 0-9 only) and `parsed` (date, city token, type, reporter name): `app/services/reporter_slug.py`.
+  - The FTP folder name (`slug`) is that slug made ASCII (Hindi transliterated, a Hindi description at the end
+    left out, symbols to `_`, max 96, `_2` if taken). Only without one is the slug built the old way.
+  - The district comes from the city token (AJM03, alw17, BAL 2, dausa...), else the reporter's district.
+    Districts, their aliases and their newsroom FTP folder are the `locations` table (48 rows).
+  - `kind`: story, press_release, day_plan or not_a_story (bounces, IMD bulletins, newsletters, unknown email
+    senders without a slug). A known reporter's mail is never not_a_story. `/desk/items` shows stories by default.
+- **Footage on the newsroom FTP (build 1)**
+  - The worker looks for the reporter's own upload in the district folder (`footage_scan`, every
+    `FOOTAGE_CHECK_SECONDS`): day folders of the received date and the slug's date, plus the day before and after,
+    however the district spells them. Exact or prefix folder names first, then loose files named with the slug;
+    a fuzzy match only when date, reporter, type and subject all agree. `app/services/footage.py`.
+  - Status: waiting until received + `FOOTAGE_WAIT_HOURS` (4), found (re-listed until then), not_found, manual.
+  - **Read-only:** every remote refuses makedirs, put, rename and delete outside `FTP_WRITE_ROOT`.
+- **Fetch window:** only mail received at or after `MAIL_FETCH_SINCE` is taken. Empty: the time of the first fetch
+  is stored (`kv.mail_fetch_since`), so the first sync never imports the old inbox.
 - **Records for training:** every raw message is kept in `messages`. Every desk decision is appended to `decisions`, together with a snapshot of the item as the desk saw it.
 
 The digital desk (Socia) gets its own backend repo and service. The only link between the two is the FTP slug folders.
@@ -51,7 +69,7 @@ The feed follows the mapping proven against 1st India's Octopus (`phase-1/vartma
 | `<title>` | the slug, with `FLASH ` for breaking stories, `UPDATE ` for corrections, `KILL ` for withdrawals |
 | `<description>` | city line, body, reporter line. An UPDATE starts with a `((…))` line naming the slug it replaces, which Octopus leaves out of the read time |
 | `<category>` | district name |
-| `<guid>` | `vartmaan-{slug}-v{version}`, generated once, never reused |
+| `<guid>` | `vartmaan-{story id}-v{version}`, generated once, never reused (not the slug: reporters resend slugs) |
 | `<pubDate>` | the time the story entered the feed (IST) |
 
 - **Approve = publish.** The story waits until the item's files are on FTP, then enters the feed.
@@ -115,10 +133,13 @@ Tests:
 4. **Create the first users.** Open a Shell on the API service and run:
    ```bash
    python -m app.cli create-user --username vansh --name "Vansh" --role super_admin
-   python -m app.cli import-reporters reporters.csv        # name,slug_code,city_code,district,phone,email
+   python -m app.cli import-reporters reporters.csv        # name,slug_code,district_code,emails,phone,...
+   python -m app.cli backfill-items                         # reporter slug, district, kind for older items
    python -m app.cli reporter-login --phone 919876543210 --username sunita
    ```
-5. **Lock down the FTP account.** It should only be able to write to `FTP_BASE_DIR`. Prefer `ftps` or `sftp` over plain `ftp`.
+5. **Lock down the FTP account.** Samvadia writes only inside `FTP_WRITE_ROOT` (default `/Vartamaan_DND`, enforced in
+   code); give the account write rights there only, if the server allows it. `FTP_BASE_DIR` must sit inside it.
+   Prefer `ftps` or `sftp` over plain `ftp`.
 
 ## How the frontends call it
 
@@ -131,18 +152,29 @@ Every request sends cookies (`credentials: "include"`). Every POST, PATCH, PUT a
 | Reporter: my reports | `GET /reporter/items`. Each `status` is `submitted`, `reviewing`, `published` or `rejected` |
 | Desk inbox | `GET /desk/items?review_state=&source=&q=&before=`, `GET /desk/items/{id}` |
 | Desk edit / reporter picker | `PATCH /desk/items/{id} {version, headline?, body?, slug_subject?, story_type?, reporter_id?, category?, priority?, tags?, city_code?, slug?}` (409 if `version` is stale; a hand-typed `slug` sticks until `POST /desk/items/{id}/slug/reset`), `GET /desk/reporters?q=`, `POST /desk/reporters` (admin) |
-| Desk pick-lists | `GET /desk/locations` returns locations, categories, priorities, story types and reject reasons |
+| Desk pick-lists | `GET /desk/meta` (decision actions, reject and approve reasons with `label_en` / `label_hi`, review states, story types, categories, priorities), `GET /desk/locations` (locations, plus the same codes without labels) |
 | Desk fetch history | `GET /desk/fetch-runs` (what each WhatsApp or Outlook pull added) |
 | Feed page (admin only) | `GET /desk/stories?item_id=` (state, `collected_at`), `POST /desk/items/{id}/publish-update` and `.../kill`, `GET /desk/feed-log` |
-| Desk decisions | `POST /desk/items/{id}/approve`, `.../reject {reason, note?}`, `.../reopen` |
+| Desk decisions | `POST /desk/items/{id}/approve {approve_reason?, importance? 1-5, note?}`, `.../reject {reason, note?}` (`other` needs a note), `.../hold`, `.../send-back {note?}`, `.../duplicate {duplicate_of}`, `.../reopen`. Every one also takes `seconds_on_item` or `opened_at`; the body is optional except on reject and duplicate. 409 when the story is in the wrong state |
 | Desk retries | `POST /desk/items/{id}/retry-ftp` (admin), `POST /desk/media/{id}/retry`, `POST /desk/refresh` |
 | Access page | `GET/POST /admin/users`, `PATCH /admin/users/{id}` |
 | Live updates | `new EventSource(API + "/events?app=desk", {withCredentials: true})`, or `app=reporter` |
 
 Sources are `portal`, `outlook` and `whatsapp`. Priorities are `normal`, `high` and `breaking`.
-The reject reasons are `duplicate`, `not_newsworthy`, `poor_visuals`, `unverified` and `other`.
+Review states are `pending`, `approved`, `rejected`, `held`, `sent_back` and `duplicate`. Approve and reject come from
+`pending` or `held`; hold only from `pending`; send-back and duplicate from `pending` or `held`; reopen takes
+`rejected`, `held`, `sent_back` or `duplicate` back to `pending`. An approved story cannot be reopened.
+The 13 reject reasons are `duplicate`, `not_newsworthy`, `pr_puff`, `routine_event`, `unverified`, `no_visuals`,
+`incomplete`, `wrong_beat`, `too_late`, `legal_risk`, `communal_risk`, `quality` and `other`.
+The 7 approve reasons are `must_carry`, `exclusive`, `good_visual`, `audience`, `ready_to_air`, `follow_up` and `filler`.
+Reasons and actions live in lookup tables (`reject_reasons`, `approve_reasons`, `decision_actions`), so labels can
+change and rows can be switched off without a deploy. Every decision is an append-only `decisions` row (a training
+label): a snapshot of the item as the desk saw it before deciding, and on approve the final copy plus
+`headline_changed` and `body_edit_distance` against the reporter's original. Full contract for the desk UI:
+[../handoff/desk-decisions-v2-contract.md](../handoff/desk-decisions-v2-contract.md) (`c:\vartmaan\code\handoff\desk-decisions-v2-contract.md`).
 A story's city is the reporter's city unless the desk sets `city_code`. Changing it rebuilds the slug and renames the FTP folder.
-Story types are `AV`, `PKG` and `SF`. If the reporter gives none, `DEFAULT_STORY_TYPE` is used.
+Story types are `AV`, `AVB`, `PKG`, `SF`, `WT`, `PTC`, `BYTE`, `LIVE`, `TEXT` and `BRIEF`. Intake takes the type from
+the reporter's slug when it is one of these. If there is none, the slug builder uses `DEFAULT_STORY_TYPE`.
 
 ## Where things live
 

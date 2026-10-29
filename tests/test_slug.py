@@ -2,7 +2,8 @@ from datetime import datetime, timezone
 
 import pytest
 
-from app.services.slug import SlugError, build_slug, slug_error, subject_words, unique_slug
+from app import models
+from app.services.slug import STORY_TYPES, SlugError, build_slug, slug_error, subject_words, unique_slug
 from app.services.translit import transliterate_word
 
 OCT14_IST_MORNING = datetime(2026, 10, 14, 4, 30, tzinfo=timezone.utc)  # 10:00 IST
@@ -54,3 +55,26 @@ def test_slug_error():
 ])
 def test_transliteration(hindi, latin):
     assert transliterate_word(hindi) == latin
+
+
+def test_story_types_match_the_database():
+    assert STORY_TYPES == models.STORY_TYPES
+    assert STORY_TYPES == ("AV", "AVB", "PKG", "SF", "WT", "PTC", "BYTE", "LIVE", "TEXT", "BRIEF")
+
+
+@pytest.mark.parametrize("kind", STORY_TYPES)
+def test_every_story_type_builds_a_valid_slug(kind):
+    slug = build_slug(OCT14_IST_MORNING, "UDR", "Paryatan season", kind.lower(), "SUNITA")
+    assert slug == f"141026_UDR_PARYATAN_SEASON_{kind}_SUNITA"
+    assert slug_error(slug) is None and slug_error(slug + "_2") is None
+
+
+@pytest.mark.parametrize("kind", ["SPL", "121", "GFX", "VOXPOP", "AVBB"])
+def test_types_outside_the_list_are_refused(kind):
+    with pytest.raises(SlugError):
+        build_slug(OCT14_IST_MORNING, "UDR", "paryatan", kind, "SUNITA")
+    assert slug_error(f"141026_UDR_PARYATAN_{kind}_SUNITA") is not None
+
+
+def test_subject_word_that_is_a_type_still_matches():
+    assert slug_error("141026_JPR_CM_BYTE_JAIPUR_AV_POOJA") is None

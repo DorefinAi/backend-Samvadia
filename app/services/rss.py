@@ -7,7 +7,8 @@ Mapping confirmed in the 14–16 Oct tests (Final Build Plan §2.2) and the prod
     <description>  city line, body, reporter line; (( )) block on top      -> story body; (( )) not read
     <category>     district name                                          -> subcategory
     <pubDate>      published time, RFC 2822                               -> received / sort order
-    <guid>         vartmaan-{slug}-v{version}, generated once, stored     -> dedupe key, never reused
+    <guid>         vartmaan-{story id}-v{version}, generated once, stored -> dedupe key, never reused
+                   (not the slug: reporters resend the same slug, and Octopus ignores a GUID it has seen)
     <link>         story permalink
 
 No dc:creator, dc:subject or priority element: Octopus ignores them.
@@ -24,8 +25,9 @@ SECONDS_PER_WORD = 0.33
 ATOM = "http://www.w3.org/2005/Atom"
 
 
-def guid_for(slug: str, version: int) -> str:
-    return f"vartmaan-{slug}-v{version}"
+def guid_for(story_id, version: int) -> str:
+    """story_id: the stories row id, generated before the row is written."""
+    return f"vartmaan-{story_id}-v{version}"
 
 
 def title_for(slug: str, kind: str, priority: str) -> str:

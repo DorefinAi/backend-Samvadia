@@ -7,13 +7,14 @@ fetch_whatsapp_media   Meta -> Storage
 fetch_mail             Outlook inbox delta -> items, messages, attachment jobs
 fetch_mail_attachment  Graph -> Storage
 purge_storage          retry Storage deletes that failed after a good FTP upload
+footage_scan           look for reporters' own footage on the newsroom FTP (read-only), see services/footage.py
 """
 import logging
 import os
 import posixpath
 import shutil
 import tempfile
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import httpx
 from sqlalchemy import delete, func, select
@@ -24,7 +25,7 @@ from app.events import emit, item_changed
 from app.intake import WAITING_STATES, add_media, add_message, find_reporter, finalize, record_fetch, schedule_finalize
 from app.jobs import GiveUp, RetryLater, enqueue, now
 from app.models import KV, Event, FeedLog, Item, Job, Media
-from app.services import ftp, mail, storage, whatsapp
+from app.services import footage, ftp, mail, storage, whatsapp
 from app.services.filenames import generated_name, safe_name, unique_name
 from app.services.slug import unique_slug
 from app.stories import release_waiting
@@ -202,14 +203,38 @@ MAIL_GIVE_UP_AFTER = timedelta(hours=24)  # throttling and outages do not count 
 MAIL_DEAD_KEEP = 200
 
 
+def mail_fetch_since(db: Session) -> datetime:
+    """MAIL_FETCH_SINCE, or the time of the first fetch (stored in kv.mail_fetch_since and kept)."""
+    raw = get_settings().mail_fetch_since.strip()
+    if raw:
+        since = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        return since if since.tzinfo else since.replace(tzinfo=timezone.utc)
+    row = db.get(KV, "mail_fetch_since")
+    if row:
+        return datetime.fromisoformat(row.value["at"])
+    since = now()
+    db.merge(KV(key="mail_fetch_since", value={"at": since.isoformat()}))
+    log.info("first mail fetch: only mail received from %s on is taken", since.isoformat())
+    return since
+
+
+def _received(m: dict) -> datetime | None:
+    try:
+        return datetime.fromisoformat((m.get("receivedDateTime") or "").replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
 def fetch_mail(db: Session, payload: dict) -> None:
     """The delta cursor always moves on. A message that fails goes on a retry list and is fetched
     again by id on the next poll, so one bad email never holds up the rest of the inbox. After
-    MAIL_MAX_ATTEMPTS it is logged in kv.mail_dead and dropped."""
+    MAIL_MAX_ATTEMPTS it is logged in kv.mail_dead and dropped.
+    Only mail received at or after mail_fetch_since() is taken; older mail is skipped without a trace."""
+    since = mail_fetch_since(db)
     state = db.get(KV, "mail_delta")
     retry_row = db.get(KV, "mail_retry")
     retry: dict[str, dict] = dict(retry_row.value) if retry_row else {}
-    messages, delta_link = mail.inbox_delta(state.value["link"] if state else None)
+    messages, delta_link = mail.inbox_delta(state.value["link"] if state else None, since=since)
     in_delta = {m["id"] for m in messages}
     for message_id in [i for i in retry if i not in in_delta]:
         try:
@@ -223,6 +248,12 @@ def fetch_mail(db: Session, payload: dict) -> None:
             _mail_failed(db, retry, message_id, e)
 
     new_titles: list[str] = []
+    old = [m for m in messages if (_received(m) or since) < since]
+    if old:
+        log.info("skipped %s email(s) received before %s", len(old), since.isoformat())
+        for m in old:
+            retry.pop(m.get("id"), None)
+    messages = [m for m in messages if (_received(m) or since) >= since]
     for m in messages:
         try:
             with db.begin_nested():  # a failure undoes only this message
@@ -322,6 +353,41 @@ def purge_storage(db: Session, payload: dict) -> None:
             m.storage_deleted_at = now()
 
 
+# --- FTP footage ------------------------------------------------------------------------------------
+
+def footage_scan(db: Session, payload: dict) -> None:
+    """Check every item that is due (waiting, or found and still inside its wait window). FTP work happens
+    with no row locked; each result is written under a short FOR UPDATE, so a desk edit in between wins."""
+    at = now()
+    ids = footage.due_ids(db, at)
+    if not ids:
+        return
+    db.commit()  # nothing held while we talk to the FTP server
+    remote = ftp.connect()
+    try:
+        lister = footage.Lister(remote)
+        for item_id in ids:
+            item = db.get(Item, item_id)
+            if item is None:
+                continue
+            try:
+                match = footage.compute(lister, item)
+            except Exception as e:  # one odd folder must not stop the scan
+                log.warning("footage check for %s failed: %s: %s", item_id, type(e).__name__, e)
+                db.rollback()
+                continue
+            db.rollback()  # drop the unlocked copy; re-read under a lock
+            item = db.get(Item, item_id, with_for_update=True, populate_existing=True)
+            if item is None or item.footage_status not in ("waiting", "found"):
+                db.rollback()
+                continue
+            if footage.apply(item, match, now()):
+                item_changed(db, item)
+            db.commit()
+    finally:
+        remote.close()
+
+
 def cleanup(db: Session, payload: dict) -> None:
     db.execute(delete(Event).where(Event.created_at < now() - timedelta(hours=24)))
     db.execute(delete(Job).where(Job.status == "done", Job.updated_at < now() - timedelta(days=7)))
@@ -336,5 +402,6 @@ HANDLERS = {
     "fetch_mail": (fetch_mail, None),
     "fetch_mail_attachment": (fetch_mail_attachment, media_download_failed),
     "purge_storage": (purge_storage, None),
+    "footage_scan": (footage_scan, None),
     "cleanup": (cleanup, None),
 }

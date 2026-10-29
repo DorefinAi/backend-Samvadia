@@ -3,6 +3,8 @@
 A story waits until the item's files are on FTP, then enters the feed (state ready, published_at set),
 so Octopus never gets a story whose FTP folder is still empty.
 """
+import uuid
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -21,7 +23,7 @@ def _slug_city(slug: str | None) -> str:
 
 def location_for(db: Session, item: Item) -> tuple[str, str, str]:
     """(code, English name, Hindi name) for the story's city."""
-    code = item.city_code or (item.reporter.city_code if item.reporter else "") or ""
+    code = item.city_code or (item.reporter.city_code if item.reporter else "") or item.district_code or ""
     if not code and db.get(Location, _slug_city(item.slug) or "-") is not None:
         code = _slug_city(item.slug)
     loc = db.get(Location, code) if code else None
@@ -42,11 +44,12 @@ def create_story(db: Session, item: Item, user: User, kind: str) -> Story:
     reporter_name = (reporter.name_hi or reporter.name) if reporter else (item.sender_name or "")
     description = description_for(kind=kind, city_hi=city_hi, body=item.body, reporter=reporter_name,
                                   replaces_slug=previous.slug if previous else None)
+    story_id = uuid.uuid4()  # the GUID is built from it
     story = Story(
-        org_id=get_settings().org_id, item_id=item.id, version=version, kind=kind,
+        id=story_id, org_id=get_settings().org_id, item_id=item.id, version=version, kind=kind,
         replaces_id=previous.id if previous else None, slug=item.slug,
         title=title_for(item.slug, kind, item.priority), description=description, district=district,
-        guid=guid_for(item.slug, version), read_seconds=read_seconds(description),
+        guid=guid_for(story_id, version), read_seconds=read_seconds(description),
         state="waiting", created_by=user.id,
     )
     db.add(story)

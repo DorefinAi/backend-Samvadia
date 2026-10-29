@@ -1,0 +1,2806 @@
+{
+ "note": "Folder names from a 7-day read-only survey of the newsroom FTP (16-23 Oct 2026). Files are written as tiny dummies by the test fixture.",
+ "tops": [
+  "10 PM PTC",
+  "Ajmer",
+  "ALWER",
+  "balotra",
+  "Banswara",
+  "BARAN",
+  "Barmer",
+  "Beawar",
+  "bharat24",
+  "BHARATPUR",
+  "Bhilwara",
+  "BIKANER",
+  "Bundi",
+  "CHITORGARH",
+  "CHURU",
+  "Dausa",
+  "DEEG",
+  "Delhi",
+  "dholpur",
+  "DIDWANA-KUCHAMAN",
+  "Dudu(Jaipur Rural)",
+  "DUNGARPUR",
+  "HARYANA",
+  "HAUMANGARH",
+  "Jaipur",
+  "JAIPUR RULAR",
+  "jaisalmer",
+  "JALORE",
+  "Jhalawad",
+  "Jhunjhunu",
+  "JODHPUR",
+  "KARAULI",
+  "Khairthal-Tijara",
+  "Kota",
+  "KOTPUTLI - BEHROR",
+  "MADHYA PRADESH",
+  "NAGOUR",
+  "Neemkathana",
+  "NODING",
+  "pali",
+  "Pratapgarh",
+  "Rajsamand",
+  "REPORTERS PHOTO UPDATE 161121",
+  "Salumbar",
+  "Sawaimadhopur",
+  "Sikar",
+  "SIROHI",
+  "SP and Collector Phone_O  list",
+  "SRIGANGANAGAR",
+  "TONK",
+  "Udaipur",
+  "UP",
+  "UTTARAKHAND",
+  "Vartamaan_DND",
+  "गॉंव की पंचायत"
+ ],
+ "stories": [
+  {
+   "path": "/ALWER/OCTOBER 2026/161026/161026_alw17_baris_av1_tapukada.mp4",
+   "files": []
+  },
+  {
+   "path": "/Ajmer/2026/OCT 2026/151026/161026_AJM_HADSA_AV_SHUBHAM",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 11.44.57 (1).mp4",
+     "modified": "20261016063055"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 11.44.57 (2).mp4",
+     "modified": "20261016063056"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 11.44.57.mp4",
+     "modified": "20261016063054"
+    }
+   ]
+  },
+  {
+   "path": "/Ajmer/2026/OCT 2026/16 Oct/161026_AJM03_GARBA_RAS_AV_MUKESH_SHARMA_BEAWAR",
+   "files": [
+    {
+     "name": "161026_AJM03_GARBA_RAS_AV1_MUKESH_SHARMA_BEAWAR.mp4",
+     "modified": "20261016091104"
+    },
+    {
+     "name": "161026_AJM03_GARBA_RAS_AV1_MUKESH_SHARMA_BEAWAR.mp4.ewc2",
+     "modified": "20261016091104"
+    },
+    {
+     "name": "161026_AJM03_GARBA_RAS_AV2_MUKESH_SHARMA_BEAWAR.mp4",
+     "modified": "20261016091104"
+    }
+   ]
+  },
+  {
+   "path": "/BARAN/oct2026/161026/161026_BRN 3_HADSA_AV_SANJAY",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 12.09.57.mp4",
+     "modified": "20261016070800"
+    }
+   ]
+  },
+  {
+   "path": "/BARAN/oct2026/161026/161026_BRN 3_NH27_HADSA_AV_SANJAY",
+   "files": [
+    {
+     "name": "VID-20261016-WA0013.mp4",
+     "modified": "20261016110847"
+    }
+   ]
+  },
+  {
+   "path": "/BARAN/oct2026/161026/161026_BRN 4_SUCIDE_AV_RAJKUMAR",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 12.38.55.mp4",
+     "modified": "20261016075929"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 12.38.55.mp4.ewc2",
+     "modified": "20261016075929"
+    }
+   ]
+  },
+  {
+   "path": "/BARAN/oct2026/161026/161026_BRN 7_NAVRATRI_AV_PRADEEP",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 10.18.16 (1).mp4",
+     "modified": "20261016045626"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 10.18.16 (1).mp4.ewc2",
+     "modified": "20261016045626"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 10.18.16.mp4",
+     "modified": "20261016045622"
+    }
+   ]
+  },
+  {
+   "path": "/BIKANER/2026/OCTOBER/161026/161026_BKN_ARREST_AV-VINOD",
+   "files": [
+    {
+     "name": "WhatsApp Image 2026-10-16 at 18.23.20.jpeg",
+     "modified": "20261016125720"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-16 at 18.23.21.jpeg",
+     "modified": "20261016125720"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 18.23.19.mp4",
+     "modified": "20261016125720"
+    }
+   ]
+  },
+  {
+   "path": "/BIKANER/2026/OCTOBER/161026/161026_BKN_GOVERNOR_AV_LAXMAN",
+   "files": [
+    {
+     "name": "WhatsApp Image 2026-10-16 at 11.51.30.jpeg",
+     "modified": "20261016064539"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-16 at 11.51.31 (1).jpeg",
+     "modified": "20261016064539"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-16 at 11.51.31 (2).jpeg",
+     "modified": "20261016064540"
+    }
+   ]
+  },
+  {
+   "path": "/BIKANER/2026/OCTOBER/161026/161026_BKN_HANGAMA_AV_LAXMAN",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 12.45.48.mp4",
+     "modified": "20261016072958"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 12.45.48.mp4.ewc2",
+     "modified": "20261016072958"
+    }
+   ]
+  },
+  {
+   "path": "/BIKANER/2026/OCTOBER/161026/161026_BKN_PARED SAMAROH_AV_LAXMAN",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 10.23.46.mp4",
+     "modified": "20261016045420"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 10.23.46.mp4.ewc2",
+     "modified": "20261016045420"
+    }
+   ]
+  },
+  {
+   "path": "/BIKANER/2026/OCTOBER/161026/161026_FST_BKN_NUKSAN_AV_LAXMAN",
+   "files": [
+    {
+     "name": "161026_FST_BKN_NUKSAN_AV_LAXMAN.mpg",
+     "modified": "20261016060018"
+    }
+   ]
+  },
+  {
+   "path": "/BIKANER/2026/OCTOBER/161026/161026_FST_BKN_POLICE_SPCL_PKG_LAXMAN",
+   "files": [
+    {
+     "name": "161026_FST_BKN_POLICE_SPCL_PKG_BYT_LAXMAN.mpg",
+     "modified": "20261016054643"
+    },
+    {
+     "name": "161026_FST_BKN_POLICE_SPCL_PKG_BYT_LAXMAN.mpg.ese2",
+     "modified": "20261017100416"
+    },
+    {
+     "name": "161026_FST_BKN_POLICE_SPCL_PKG_BYT_LAXMAN.mpg.ewc2",
+     "modified": "20261016054643"
+    }
+   ]
+  },
+  {
+   "path": "/Banswara/2026/october/191026/19102026_BNS4_Bagidora_AV_Aag_Dharmendra",
+   "files": [
+    {
+     "name": "1...1.mp4",
+     "modified": "20261019044200"
+    },
+    {
+     "name": "1...1.mp4.ewc2",
+     "modified": "20261019044200"
+    },
+    {
+     "name": "1..1.mp4",
+     "modified": "20261019044205"
+    }
+   ]
+  },
+  {
+   "path": "/Banswara/2026/october/191026/19102026_BNS4_Bagidora_AV_Nandani_Dharmendra",
+   "files": [
+    {
+     "name": "A Nandani .mp4",
+     "modified": "20261019032603"
+    },
+    {
+     "name": "A Nandani .mp4.ewc2",
+     "modified": "20261019032603"
+    },
+    {
+     "name": "A. Nandani .mp4",
+     "modified": "20261019031656"
+    }
+   ]
+  },
+  {
+   "path": "/Banswara/2026/october/191026/191026_BNS_fire_in_car",
+   "files": [
+    {
+     "name": "VID-20261019-WA0036(1).mp4",
+     "modified": "20261019150504"
+    },
+    {
+     "name": "VID-20261019-WA0036(1).mp4.ewc2",
+     "modified": "20261019150504"
+    },
+    {
+     "name": "VID-20261019-WA0037(1).mp4",
+     "modified": "20261019150510"
+    }
+   ]
+  },
+  {
+   "path": "/Barmer/OCT_2026/161026",
+   "files": []
+  },
+  {
+   "path": "/Beawar/OCTOBER-26/191026",
+   "files": [
+    {
+     "name": "191026_BEAWAR_DASHAHRA_TEYARIYA_AV_SUNIL_TUSAVADA_RAIPUR/01.mp4",
+     "modified": "20261019081734"
+    },
+    {
+     "name": "191026_BEAWAR_DASHAHRA_TEYARIYA_AV_SUNIL_TUSAVADA_RAIPUR/01.mp4.ewc2",
+     "modified": "20261019081734"
+    },
+    {
+     "name": "191026_BEAWAR_DASHAHRA_TEYARIYA_AV_SUNIL_TUSAVADA_RAIPUR/02.mp4",
+     "modified": "20261019081736"
+    }
+   ]
+  },
+  {
+   "path": "/CHURU/OCT/161026/161026_CHR_ACCIDENT_AV-TANUJ",
+   "files": [
+    {
+     "name": "Thumbs.db",
+     "modified": "20261016171635"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-16 at 22.41.58.jpeg",
+     "modified": "20261016171529"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 22.41.56.mp4",
+     "modified": "20261016171529"
+    }
+   ]
+  },
+  {
+   "path": "/CHURU/OCT/161026/161026_CHR_GADDA_AV_SANAJY",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 10.39.00.mp4",
+     "modified": "20261016082124"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 10.39.00.mp4.ewc2",
+     "modified": "20261016082124"
+    }
+   ]
+  },
+  {
+   "path": "/CHURU/OCT/161026/161026_CHURU_ANETI_KARY_AVB_ASHWINI",
+   "files": [
+    {
+     "name": "161026_CHURU_ANETI_KARY_AV1_ASHWINI.mp4",
+     "modified": "20261016120435"
+    },
+    {
+     "name": "161026_CHURU_ANETI_KARY_AV1_ASHWINI.mp4.ewc2",
+     "modified": "20261016120435"
+    },
+    {
+     "name": "161026_CHURU_ANETI_KARY_AV2_ASHWINI.mp4",
+     "modified": "20261016120408"
+    }
+   ]
+  },
+  {
+   "path": "/CHURU/OCT/161026/161026_CHURU_ATIKRAMAN_AVB_SANJAY",
+   "files": [
+    {
+     "name": "161026_CHURU_ATIKRAMAN_AV1_SANJAY.mp4",
+     "modified": "20261016130130"
+    },
+    {
+     "name": "161026_CHURU_ATIKRAMAN_AV2_SANJAY.mp4",
+     "modified": "20261016130135"
+    },
+    {
+     "name": "161026_CHURU_ATIKRAMAN_AV3_SANJAY.mp4",
+     "modified": "20261016130141"
+    }
+   ]
+  },
+  {
+   "path": "/CHURU/OCT/161026/161026_CHURU_POLICE_NDPS_AVB_ASHWINI",
+   "files": [
+    {
+     "name": "161026_CHURU_POLICE_NDPS_AV1_ASHWINI.mp4",
+     "modified": "20261016115340"
+    },
+    {
+     "name": "161026_CHURU_POLICE_NDPS_AV1_ASHWINI.mp4.ewc2",
+     "modified": "20261016115340"
+    },
+    {
+     "name": "161026_CHURU_POLICE_NDPS_AVB_ASHWINI.mp4",
+     "modified": "20261016115530"
+    }
+   ]
+  },
+  {
+   "path": "/DIDWANA-KUCHAMAN/OCT_2026/16_OCT/016010026_LADNUN _CHAATRAO NE KIYA BHRMN _AV_ANOOP TIWARI _NGR12",
+   "files": []
+  },
+  {
+   "path": "/DIDWANA-KUCHAMAN/OCT_2026/16_OCT/016010026_LADNUN _KARYKRTA SMMELN _AV_ANOOP TIWARI _NGR12",
+   "files": [
+    {
+     "name": "VID-20261016-WA0021.mp4",
+     "modified": "20261016090215"
+    },
+    {
+     "name": "VID-20261016-WA0021.mp4.ewc2",
+     "modified": "20261016090215"
+    }
+   ]
+  },
+  {
+   "path": "/DIDWANA-KUCHAMAN/OCT_2026/16_OCT/016010026_LADNUN _PRTIYOGITA _AV_ANOOP TIWARI _NGR12",
+   "files": [
+    {
+     "name": "IMG-20261016-WA0033.jpg",
+     "modified": "20261016110040"
+    },
+    {
+     "name": "IMG-20261016-WA0034.jpg",
+     "modified": "20261016110012"
+    }
+   ]
+  },
+  {
+   "path": "/DIDWANA-KUCHAMAN/OCT_2026/16_OCT/016010026_LADNUN _STHIPA DIYA _AV_ANOOP TIWARI _NGR12",
+   "files": []
+  },
+  {
+   "path": "/DIDWANA-KUCHAMAN/OCT_2026/16_OCT/15,10 ,26 Kuchaman navacharpurn A V Murari gour N G R2",
+   "files": [
+    {
+     "name": "VID-20261016-WA0331.mp4",
+     "modified": "20261016095856"
+    },
+    {
+     "name": "VID-20261016-WA0331.mp4.ewc2",
+     "modified": "20261016095856"
+    }
+   ]
+  },
+  {
+   "path": "/DIDWANA-KUCHAMAN/OCT_2026/16_OCT/16,,10,,26 Kuchaman bahut sara Mata A V B B B Murari gour N G R2",
+   "files": [
+    {
+     "name": "VID-20261016-WA0163.mp4",
+     "modified": "20261016065950"
+    },
+    {
+     "name": "VID-20261016-WA0164.mp4",
+     "modified": "20261016065954"
+    },
+    {
+     "name": "VID-20261016-WA0166.mp4",
+     "modified": "20261016070011"
+    }
+   ]
+  },
+  {
+   "path": "/DIDWANA-KUCHAMAN/OCT_2026/16_OCT/161026_DIDWANA_BARISH_AV_WT_NARPATJOYA",
+   "files": [
+    {
+     "name": "VID-20261016-WA0005.mp4",
+     "modified": "20261016013234"
+    },
+    {
+     "name": "VID-20261016-WA0005.mp4.ewc2",
+     "modified": "20261016013234"
+    },
+    {
+     "name": "VID-20261016-WA0008.mp4",
+     "modified": "20261016013238"
+    }
+   ]
+  },
+  {
+   "path": "/DIDWANA-KUCHAMAN/OCT_2026/16_OCT/161026_DIDWANA_NAVRATRI UTSAV_AVBBB_NARPATJOYA",
+   "files": [
+    {
+     "name": "BITE 01 - KAJU KANWAR .mp4",
+     "modified": "20261016053125"
+    },
+    {
+     "name": "BITE 02 - KESHA RAM KUMAWAT.mp4",
+     "modified": "20261016053132"
+    },
+    {
+     "name": "BITE 03 - KHUSHBU.mp4",
+     "modified": "20261016053144"
+    }
+   ]
+  },
+  {
+   "path": "/DIDWANA-KUCHAMAN/OCT_2026/16_OCT/161026_DIDWANA_SEVA SETU SHIVIR_AV_NARPATJOYA",
+   "files": [
+    {
+     "name": "VID-20261016-WA0039.mp4",
+     "modified": "20261016090137"
+    },
+    {
+     "name": "VID-20261016-WA0040.mp4",
+     "modified": "20261016090144"
+    },
+    {
+     "name": "VID-20261016-WA0040.mp4.ewc2",
+     "modified": "20261016090144"
+    }
+   ]
+  },
+  {
+   "path": "/Dausa/2026/OCT/161026/161025_dausa_election_exxlusive_laxmikant_wt",
+   "files": [
+    {
+     "name": "dm_1-2-1.mp4",
+     "modified": "20261016052001"
+    },
+    {
+     "name": "dm_1-2-1.mp4.ewc2",
+     "modified": "20261016052001"
+    },
+    {
+     "name": "dm_visual.mp4",
+     "modified": "20261016052143"
+    }
+   ]
+  },
+  {
+   "path": "/Dausa/2026/OCT/161026/161026_DAU 5_APHARAN PARYAS_AV_SURESH",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 12.10.48.mp4",
+     "modified": "20261016070843"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 12.10.48.mp4.ewc2",
+     "modified": "20261016070843"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 12.11.08 (1).mp4",
+     "modified": "20261016070837"
+    }
+   ]
+  },
+  {
+   "path": "/Dausa/2026/OCT/161026/161026_DAU _NOMINATION_AV_LAXMIKANT",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 12.53.17.mp4",
+     "modified": "20261016081528"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 12.53.17.mp4.ewc2",
+     "modified": "20261016081528"
+    }
+   ]
+  },
+  {
+   "path": "/Dausa/2026/OCT/161026/161026_DAU_KIDNEPING KI GUTTHI SULJHI-AV_SURESH",
+   "files": [
+    {
+     "name": "Thumbs.db",
+     "modified": "20261016101048"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-16 at 15.16.55.jpeg",
+     "modified": "20261016095912"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 12.11.08 (1).mp4",
+     "modified": "20261016095940"
+    }
+   ]
+  },
+  {
+   "path": "/Dausa/2026/OCT/161026/161026_DAU_NAMANKAN_AV_LAXMIKANT",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 14.38.31.mp4",
+     "modified": "20261016092208"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 14.38.31.mp4.ewc2",
+     "modified": "20261016092208"
+    }
+   ]
+  },
+  {
+   "path": "/Dausa/2026/OCT/161026/161026_DUA 1_MOOSAM_AV_DINESH",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 07.16.52.mp4",
+     "modified": "20261016015517"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 07.16.52.mp4.ewc2",
+     "modified": "20261016015517"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 07.20.39.mp4",
+     "modified": "20261016015520"
+    }
+   ]
+  },
+  {
+   "path": "/Dausa/2026/OCT/161026/161026_dausa_mla_mothor_avb_laxmikant",
+   "files": [
+    {
+     "name": "vikram_bite.mp4",
+     "modified": "20261016101438"
+    },
+    {
+     "name": "vikram_bite.mp4.ewc2",
+     "modified": "20261016101438"
+    },
+    {
+     "name": "Vikram_visual.mp4",
+     "modified": "20261016101710"
+    }
+   ]
+  },
+  {
+   "path": "/Dausa/2026/OCT/161026/161026_dausa_virasat_ki_siyasat_avb_laxmikant_wt",
+   "files": [
+    {
+     "name": "WhatsApp Image 2026-10-16 at 13.59.16.jpeg",
+     "modified": "20261016085358"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 12.53.17.mp4",
+     "modified": "20261016085251"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 12.53.17.mp4.ewc2",
+     "modified": "20261016085251"
+    }
+   ]
+  },
+  {
+   "path": "/Dausa/2026/OCT/161026/161026_khoda_pahad_nikli_chuhiya_avb_laxmikant_visual",
+   "files": [
+    {
+     "name": "chuhiya_satyanarayan.mp4",
+     "modified": "20261016150056"
+    },
+    {
+     "name": "chuhiya_satyanarayan.mp4.ewc2",
+     "modified": "20261016150056"
+    },
+    {
+     "name": "cuhiya_visual.mp4",
+     "modified": "20261016150011"
+    }
+   ]
+  },
+  {
+   "path": "/JAIPUR RULAR/OCTOBER 2026/CHOMU( JAIPUR)/161026_CHOMU_HARMADA_SHANTI_SCHOOL_PROGRAM_AVB_",
+   "files": [
+    {
+     "name": "VID-20261016-WA0578.mp4",
+     "modified": "20261016152850"
+    },
+    {
+     "name": "VID-20261016-WA0578.mp4.ewc2",
+     "modified": "20261016152850"
+    },
+    {
+     "name": "VID-20261016-WA0579.mp4",
+     "modified": "20261016152852"
+    }
+   ]
+  },
+  {
+   "path": "/JAIPUR RULAR/OCTOBER 2026/CHOMU( JAIPUR)/191026_CHOMU_ACCIDENT_HADSA_DEATH_AV_",
+   "files": [
+    {
+     "name": "VID-20261019-WA0173.mp4",
+     "modified": "20261019070227"
+    },
+    {
+     "name": "VID-20261019-WA0173.mp4.ewc2",
+     "modified": "20261019070227"
+    },
+    {
+     "name": "VID-20261019-WA0174.mp4",
+     "modified": "20261019070227"
+    }
+   ]
+  },
+  {
+   "path": "/JAIPUR RULAR/OCTOBER 2026/CHOMU( JAIPUR)/191026_CHOMU_PROGRAM_SAPANA_AVB_",
+   "files": [
+    {
+     "name": "VID-20261018-WA0250.mp4",
+     "modified": "20261018170944"
+    },
+    {
+     "name": "VID-20261018-WA0251.mp4",
+     "modified": "20261018170944"
+    },
+    {
+     "name": "VID-20261018-WA0252.mp4",
+     "modified": "20261018170944"
+    }
+   ]
+  },
+  {
+   "path": "/JAIPUR RULAR/OCTOBER 2026/CHOMU( JAIPUR)/201026_CHOMU_PATH_SANCHALAN_AV_",
+   "files": [
+    {
+     "name": "VID-20261020-WA0035.mp4",
+     "modified": "20261020105140"
+    },
+    {
+     "name": "VID-20261020-WA0035.mp4.ewc2",
+     "modified": "20261020105140"
+    }
+   ]
+  },
+  {
+   "path": "/JAIPUR RULAR/OCTOBER 2026/CHOMU( JAIPUR)/201026_CHOMU_PROGRAM_AV_",
+   "files": [
+    {
+     "name": "VID-20261020-WA0180.mp4",
+     "modified": "20261020170431"
+    },
+    {
+     "name": "VID-20261020-WA0181.mp4",
+     "modified": "20261020170431"
+    },
+    {
+     "name": "VID-20261020-WA0182.mp4",
+     "modified": "20261020180157"
+    }
+   ]
+  },
+  {
+   "path": "/JAIPUR RULAR/OCTOBER 2026/CHOMU( JAIPUR)/211026_CHOMU_HARMADA_SHO_DANCE_VIRAL_AV_",
+   "files": [
+    {
+     "name": "VID-20261021-WA0000.mp4",
+     "modified": "20261020185012"
+    },
+    {
+     "name": "VID-20261021-WA0000.mp4.ewc2",
+     "modified": "20261020185012"
+    }
+   ]
+  },
+  {
+   "path": "/Jhalawad/OCTOBER-2026/111026/19-10-26",
+   "files": []
+  },
+  {
+   "path": "/Jhalawad/OCTOBER-2026/19-10-26/191026-bakani-ramnavmi ke avsar par shetr me nikale mata ke ghodle-av-jhl8-girraj-bakani-jhalawar",
+   "files": [
+    {
+     "name": "VID-20261019-WA0013.mp4",
+     "modified": "19691231235959"
+    },
+    {
+     "name": "VID-20261019-WA0013.mp4.ewc2",
+     "modified": "19691231235959"
+    },
+    {
+     "name": "VID-20261019-WA0015.mp4",
+     "modified": "19691231235959"
+    }
+   ]
+  },
+  {
+   "path": "/Jhalawad/OCTOBER-2026/19-10-26/191026_ jhalawar _aato plta 5 ghyal _av _arif",
+   "files": [
+    {
+     "name": "IMG-20261019-WA0016.jpg",
+     "modified": "19691231235959"
+    },
+    {
+     "name": "IMG-20261019-WA0024.jpg",
+     "modified": "19691231235959"
+    },
+    {
+     "name": "VID-20261019-WA0022.mp4",
+     "modified": "19691231235959"
+    }
+   ]
+  },
+  {
+   "path": "/Jhalawad/OCTOBER-2026/19-10-26/191026_Pirawa_Rawan_putla_nirman_Av_JHL1_Rais",
+   "files": [
+    {
+     "name": "VID-20261018-WA0323.mp4",
+     "modified": "20261018081907"
+    },
+    {
+     "name": "VID-20261018-WA0323.mp4.ewc2",
+     "modified": "20261018081907"
+    }
+   ]
+  },
+  {
+   "path": "/Jhalawad/OCTOBER-2026/19-10-26/191026_Pirawa_dhadhkte_Angaro_se_gujre_sadhak_Av_JHL1_Rais",
+   "files": [
+    {
+     "name": "VID-20261019-WA0467.mp4",
+     "modified": "20261019103849"
+    },
+    {
+     "name": "VID-20261019-WA0467.mp4.ewc2",
+     "modified": "20261019103849"
+    }
+   ]
+  },
+  {
+   "path": "/Jhalawad/OCTOBER-2026/19-10-26/191026_Pirawa_kuve_mai_dubne_se_mot_Av_JHL1_Rais",
+   "files": [
+    {
+     "name": "VID_20261019_144937.mp4",
+     "modified": "20261019095451"
+    },
+    {
+     "name": "VID_20261019_144937.mp4.ewc2",
+     "modified": "20261019095451"
+    }
+   ]
+  },
+  {
+   "path": "/Jhalawad/OCTOBER-2026/19-10-26/191026_jhalawar _ cmd dora _ av _arif",
+   "files": [
+    {
+     "name": "IMG-20261019-WA0113.jpg",
+     "modified": "19691231235959"
+    },
+    {
+     "name": "IMG-20261019-WA0115.jpg",
+     "modified": "19691231235959"
+    },
+    {
+     "name": "VID-20261019-WA0114.mp4",
+     "modified": "19691231235959"
+    }
+   ]
+  },
+  {
+   "path": "/Jhalawad/OCTOBER-2026/19-10-26/191026_jhalawar _ ravn privar _avb _arif",
+   "files": [
+    {
+     "name": "VID-20261019-WA0006.mp4",
+     "modified": "19691231235959"
+    },
+    {
+     "name": "VID-20261019-WA0006.mp4.ewc2",
+     "modified": "19691231235959"
+    },
+    {
+     "name": "VID-20261019-WA0007.mp4",
+     "modified": "19691231235959"
+    }
+   ]
+  },
+  {
+   "path": "/Jhalawad/OCTOBER-2026/19-10-26/191026_jhalawar _65 lakh ki smek pkri _avb _arif",
+   "files": [
+    {
+     "name": "IMG-20261019-WA0089.jpg",
+     "modified": "19691231235959"
+    },
+    {
+     "name": "Screenshot_20261019_170205_Drive.jpg",
+     "modified": "19691231235959"
+    },
+    {
+     "name": "Thumbs.db",
+     "modified": "20261019132946"
+    }
+   ]
+  },
+  {
+   "path": "/Jhalawad/OCTOBER-2026/19-10-26/191926_ jhalawar_ aarti _av_arif",
+   "files": [
+    {
+     "name": "VID-20261019-WA0069.mp4",
+     "modified": "19691231235959"
+    },
+    {
+     "name": "VID-20261019-WA0070.mp4",
+     "modified": "19691231235959"
+    },
+    {
+     "name": "VID-20261019-WA0071.mp4",
+     "modified": "19691231235959"
+    }
+   ]
+  },
+  {
+   "path": "/Jhunjhunu/CHIRAWA/201026",
+   "files": [
+    {
+     "name": "201026_JHU_VIVAD_AV_VEDANT/WhatsApp Video 2026-10-20 at 14.15.01.mp4",
+     "modified": "20261020084737"
+    },
+    {
+     "name": "201026_JHU_VIVAD_AV_VEDANT/WhatsApp Video 2026-10-20 at 14.15.01.mp4.ewc2",
+     "modified": "20261020084737"
+    },
+    {
+     "name": "201026_JHU_VIVAD_AV_VEDANT/WhatsApp Video 2026-10-20 at 14.15.02.mp4",
+     "modified": "20261020084741"
+    }
+   ]
+  },
+  {
+   "path": "/NAGOUR/2026/October_2026/Oct _22/221026-Nagaur_Panchayat Election  2026 voting-AVB_YOUNUS",
+   "files": [
+    {
+     "name": "VID-20261022-WA0002.mp4",
+     "modified": "20261022021236"
+    },
+    {
+     "name": "VID-20261022-WA0002.mp4.ewc2",
+     "modified": "20261022021236"
+    },
+    {
+     "name": "Video (1).mp4",
+     "modified": "20261022095103"
+    }
+   ]
+  },
+  {
+   "path": "/NAGOUR/2026/October_2026/Oct _22/221026_Nagaur_polling station gates are closed_Av_Younus",
+   "files": [
+    {
+     "name": "VID_20261022_122908.mp4",
+     "modified": "20261022141157"
+    },
+    {
+     "name": "VID_20261022_122908.mp4.ewc2",
+     "modified": "20261022141157"
+    },
+    {
+     "name": "VID_20261022_132356.mp4",
+     "modified": "20261022141225"
+    }
+   ]
+  },
+  {
+   "path": "/Pratapgarh/October/16/161026_pratapgarh_collector aur sp ne kanun vyvstha aur nirvachan_av_sanjay",
+   "files": [
+    {
+     "name": "IMG-20261016-WA0035.jpg",
+     "modified": "20261016142237"
+    },
+    {
+     "name": "IMG-20261016-WA0036.jpg",
+     "modified": "20261016142239"
+    },
+    {
+     "name": "VID-20261016-WA0037.mp4",
+     "modified": "20261016142244"
+    }
+   ]
+  },
+  {
+   "path": "/Pratapgarh/October/16/161026_pratapgarh_do afim taskar girftar_av_sanjay ",
+   "files": [
+    {
+     "name": "IMG-20261016-WA0004.jpg",
+     "modified": "20261016025516"
+    },
+    {
+     "name": "IMG-20261016-WA0005.jpg",
+     "modified": "20261016025517"
+    },
+    {
+     "name": "police n1.mp4",
+     "modified": "20260602082430"
+    }
+   ]
+  },
+  {
+   "path": "/Pratapgarh/October/16/161026_pratapgarh_renjar hatyakand men teen aur girftar_av_sanjay ",
+   "files": [
+    {
+     "name": "chhoti sadadi thana.mp4",
+     "modified": "20260519080128"
+    },
+    {
+     "name": "IMG-20261016-WA0006.jpg",
+     "modified": "20261016083458"
+    },
+    {
+     "name": "IMG-20261016-WA0007.jpg",
+     "modified": "20261016083458"
+    }
+   ]
+  },
+  {
+   "path": "/TONK/OCTOBER 2026/161026+/161026_TONK_AAG_AV_WAJAHT",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 13.10.09 (1).mp4",
+     "modified": "20261016074703"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 13.10.09 (1).mp4.ewc2",
+     "modified": "20261016074703"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 13.10.09.mp4",
+     "modified": "20261016074702"
+    }
+   ]
+  },
+  {
+   "path": "/TONK/OCTOBER 2026/161026+/161026_TONK_GIRAFTAR_AV_WAJAHAT",
+   "files": [
+    {
+     "name": "Thumbs.db",
+     "modified": "20261016080354"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-16 at 13.31.26 (1).jpeg",
+     "modified": "20261016080242"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-16 at 13.31.26.jpeg",
+     "modified": "20261016080240"
+    }
+   ]
+  },
+  {
+   "path": "/TONK/OCTOBER 2026/161026+/161026_TONK_NITYANAND_RAY_AVVV_WAJAHAT",
+   "files": [
+    {
+     "name": "IMG-20261016-WA0046.jpg",
+     "modified": "19691231235959"
+    },
+    {
+     "name": "IMG-20261016-WA0048.jpg",
+     "modified": "19691231235959"
+    },
+    {
+     "name": "Thumbs.db",
+     "modified": "20261016094920"
+    }
+   ]
+  },
+  {
+   "path": "/balotra/OCT 2026/161026/161026_BAL 2_DEATH_AV_BANSHI",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 08.23.25.mp4",
+     "modified": "20261016074455"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 08.23.25.mp4.ewc2",
+     "modified": "20261016074455"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 08.23.36.mp4",
+     "modified": "20261016074459"
+    }
+   ]
+  },
+  {
+   "path": "/ALWER/OCTOBER 2026/161026/161026_ALW_ATS KARWAI_AV-MANOJ",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 17.27.07.mp4",
+     "modified": "20261016120200"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 17.27.07.mp4.ewc2",
+     "modified": "20261016120200"
+    }
+   ]
+  },
+  {
+   "path": "/ALWER/OCTOBER 2026/161026/161026_ALW_PRADASHAN_AVB_CHANDER",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 11.58.01 (1).mp4",
+     "modified": "20261016072405"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 11.58.01 (1).mp4.ewc2",
+     "modified": "20261016072405"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 11.58.01.mp4",
+     "modified": "20261016072405"
+    }
+   ]
+  },
+  {
+   "path": "/ALWER/OCTOBER 2026/161026/161026_ALW_SANJAY SHARMA_AV_CHANDRA SHEKHAR",
+   "files": [
+    {
+     "name": "WhatsApp Image 2026-10-16 at 16.28.47 (1).jpeg",
+     "modified": "20261016110121"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-16 at 16.28.47.jpeg",
+     "modified": "20261016110121"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-16 at 16.28.48 (1).jpeg",
+     "modified": "20261016110121"
+    }
+   ]
+  },
+  {
+   "path": "/Ajmer/2026/OCT 2026/16 Oct/161026_AJM03_INSPECTION_AV_MUKESH_SHARMA_BEAWAR",
+   "files": [
+    {
+     "name": "161026_AJM03_INSPECTION_AV1_MUKESH_SHARMA_BEAWAR.jpg",
+     "modified": "20261016091657"
+    },
+    {
+     "name": "161026_AJM03_INSPECTION_AV2_MUKESH_SHARMA_BEAWAR.jpg",
+     "modified": "20261016091656"
+    },
+    {
+     "name": "161026_AJM03_INSPECTION_AV3_MUKESH_SHARMA_BEAWAR.jpg",
+     "modified": "20261016091659"
+    }
+   ]
+  },
+  {
+   "path": "/Ajmer/2026/OCT 2026/16 Oct/161026_AJM03_INTERNATIONAL_GIRL_WEEK_AV_MUKESH_SHARMA_BEAWAR",
+   "files": [
+    {
+     "name": "161026_AJM03_INTERNATIONAL_GIRL_WEEK_AV1_MUKESH_SHARMA_BEAWAR.jpg",
+     "modified": "20261016100750"
+    },
+    {
+     "name": "161026_AJM03_INTERNATIONAL_GIRL_WEEK_AV2_MUKESH_SHARMA_BEAWAR.jpg",
+     "modified": "20261016100750"
+    },
+    {
+     "name": "161026_AJM03_INTERNATIONAL_GIRL_WEEK_AV3_MUKESH_SHARMA_BEAWAR.jpg",
+     "modified": "20261016100751"
+    }
+   ]
+  },
+  {
+   "path": "/BHARATPUR/OCT 2026/191026",
+   "files": [
+    {
+     "name": "191026_BRT_ATM LOOTNE SE BACA_AV-RAVI/WhatsApp Video 2026-10-19 at 15.45.31 (1).mp4",
+     "modified": "20261019102018"
+    },
+    {
+     "name": "191026_BRT_ATM LOOTNE SE BACA_AV-RAVI/WhatsApp Video 2026-10-19 at 15.45.31 (1).mp4.ewc2",
+     "modified": "20261019102018"
+    },
+    {
+     "name": "191026_BRT_ATM LOOTNE SE BACA_AV-RAVI/WhatsApp Video 2026-10-19 at 15.45.31.mp4",
+     "modified": "20261019102018"
+    }
+   ]
+  },
+  {
+   "path": "/BHARATPUR/OCT 2026/201026/201026_BRT_ATAR SINGH_AV_RAVI",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-20 at 16.32.15.mp4",
+     "modified": "20261020110448"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-20 at 16.32.15.mp4.ewc2",
+     "modified": "20261020110448"
+    }
+   ]
+  },
+  {
+   "path": "/BHARATPUR/OCT 2026/201026/201026_BRT_SAHV_AV_RAVI",
+   "files": [
+    {
+     "name": "Thumbs.db",
+     "modified": "20261020143556"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-20 at 13.10.40.jpeg",
+     "modified": "20261020074133"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-20 at 13.10.41.jpeg",
+     "modified": "20261020074137"
+    }
+   ]
+  },
+  {
+   "path": "/BHARATPUR/OCT 2026/201026/201026_BTP_TANKI MAMLA_AVB_RAVI",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-20 at 16.37.59 (1).mp4",
+     "modified": "20261020111506"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-20 at 16.37.59 (2).mp4",
+     "modified": "20261020111502"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-20 at 16.37.59.mp4",
+     "modified": "20261020111505"
+    }
+   ]
+  },
+  {
+   "path": "/Banswara/2026/october/201026",
+   "files": [
+    {
+     "name": "banswara_201026_bns5_ ravan_dahan_kishor/VID-20261020-WA0386.mp4",
+     "modified": "20261020144929"
+    },
+    {
+     "name": "banswara_201026_bns5_ ravan_dahan_kishor/VID-20261020-WA0387.mp4",
+     "modified": "20261020144918"
+    },
+    {
+     "name": "banswara_201026_bns5_ ravan_dahan_kishor/VID-20261020-WA0388.mp4",
+     "modified": "20261020144851"
+    }
+   ]
+  },
+  {
+   "path": "/Barmer/OCT_2026/171026",
+   "files": []
+  },
+  {
+   "path": "/Barmer/OCT_2026/181026",
+   "files": [
+    {
+     "name": "18102026_BAR_06_NAGANA_MANDIR_AVB+B_RAJENDRA/20261017_160220.mp4",
+     "modified": "20261018065937"
+    },
+    {
+     "name": "18102026_BAR_06_NAGANA_MANDIR_AVB+B_RAJENDRA/20261017_161801.mp4",
+     "modified": "20261018065320"
+    },
+    {
+     "name": "18102026_BAR_06_NAGANA_MANDIR_AVB+B_RAJENDRA/YouCut_20261017_233032380.mp4",
+     "modified": "20261018070315"
+    }
+   ]
+  },
+  {
+   "path": "/Barmer/OCT_2026/191026",
+   "files": [
+    {
+     "name": "191026_BARMER_ACCIDENT_AV_ASHOK/WhatsApp Video 2026-10-19 at 20.14.03.mp4",
+     "modified": "20261019144511"
+    },
+    {
+     "name": "191026_BARMER_ACCIDENT_AV_ASHOK/WhatsApp Video 2026-10-19 at 20.14.03.mp4.ewc2",
+     "modified": "20261019144511"
+    }
+   ]
+  },
+  {
+   "path": "/Beawar/OCTOBER-26/201026",
+   "files": [
+    {
+     "name": "201026_BEAWAR_RAWAN_DAHAN_AV_SUNIL_TUSAVADA_RAIPUR/IMG_20261020_182456.jpg",
+     "modified": "20261020141822"
+    },
+    {
+     "name": "201026_BEAWAR_RAWAN_DAHAN_AV_SUNIL_TUSAVADA_RAIPUR/video_20261020_181752.mp4",
+     "modified": "20261020141826"
+    },
+    {
+     "name": "201026_BEAWAR_RAWAN_DAHAN_AV_SUNIL_TUSAVADA_RAIPUR/video_20261020_181817.mp4",
+     "modified": "20261020141829"
+    }
+   ]
+  },
+  {
+   "path": "/Bhilwara/OCT 2026/151026/15.10.2026_school bus news_av_pankaj",
+   "files": [
+    {
+     "name": "Thumbs.db",
+     "modified": "20261017041414"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-15 at 3.12.19 PM (1).jpeg",
+     "modified": "20261015094758"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-15 at 3.12.19 PM (2).jpeg",
+     "modified": "20261015094758"
+    }
+   ]
+  },
+  {
+   "path": "/Bhilwara/OCT 2026/161026/16.10.2026_kotari  ksetr kudi choraya accident vijawal update",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 2.18.21 PM.mp4",
+     "modified": "20261016093606"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 2.18.22 PM (1).mp4",
+     "modified": "20261016093606"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 2.18.22 PM.mp4",
+     "modified": "20261016093609"
+    }
+   ]
+  },
+  {
+   "path": "/Bhilwara/OCT 2026/161026/161026_BHL_TAKKAR_AV_RAJENDRA",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 10.54.17.mp4",
+     "modified": "20261016081832"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 10.54.17.mp4.ewc2",
+     "modified": "20261016081832"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 10.54.18.mp4",
+     "modified": "20261016081835"
+    }
+   ]
+  },
+  {
+   "path": "/Bhilwara/OCT 2026/161026/161026_BHL_virodh prdarson news_avb_pankaj",
+   "files": []
+  },
+  {
+   "path": "/Bundi/OCT 2026/161026",
+   "files": [
+    {
+     "name": "161026_BUNDI_NARESH_MEENA_PRESS_WARTA_AVB, JAGDISHPRAJAPAT/naresh meena press conference.mp4",
+     "modified": "20261016101223"
+    },
+    {
+     "name": "161026_BUNDI_NARESH_MEENA_PRESS_WARTA_AVB, JAGDISHPRAJAPAT/video_20261016_144407.mp4",
+     "modified": "20261016091449"
+    },
+    {
+     "name": "161026_BUNDI_NARESH_MEENA_PRESS_WARTA_AVB, JAGDISHPRAJAPAT/video_20261016_144407.mp4.ewc2",
+     "modified": "20261016091449"
+    }
+   ]
+  },
+  {
+   "path": "/Bundi/OCT 2026/171026/171026_BND 1_ATM LOOT_AV_CHAND",
+   "files": [
+    {
+     "name": "Thumbs.db",
+     "modified": "20261017044845"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-17 at 09.48.06 (1).jpeg",
+     "modified": "20261017044719"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-17 at 09.48.06 (2).jpeg",
+     "modified": "20261017044721"
+    }
+   ]
+  },
+  {
+   "path": "/Bundi/OCT 2026/171026/171026_BND_ATM CHORI MAMLA_AV_JAGDISH",
+   "files": [
+    {
+     "name": "WhatsApp Image 2026-10-17 at 19.43.05.jpeg",
+     "modified": "20261017141441"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-17 at 19.43.06.jpeg",
+     "modified": "20261017141441"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-17 at 19.43.07.jpeg",
+     "modified": "20261017141441"
+    }
+   ]
+  },
+  {
+   "path": "/Bundi/OCT 2026/171026/171026_BND_PANKHE SE CHINGARI NIKLE_AV_CHAND SINGH",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-17 at 19.00.27 (1).mp4",
+     "modified": "20261017133129"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-17 at 19.00.27 (1).mp4.ewc2",
+     "modified": "20261017133129"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-17 at 19.00.27.mp4",
+     "modified": "20261017133126"
+    }
+   ]
+  },
+  {
+   "path": "/CHITORGARH/OCTOBER_2026/181026",
+   "files": [
+    {
+     "name": "MUST_181026-CHI- BEGUN -JOGNIYA MATA -AV -DINESH SANADHYA/WhatsApp Image 2026-10-18 at 15.12.59.jpeg",
+     "modified": "20261018114056"
+    },
+    {
+     "name": "MUST_181026-CHI- BEGUN -JOGNIYA MATA -AV -DINESH SANADHYA/WhatsApp Video 2026-10-18 at 15.11.31.mp4",
+     "modified": "20261018114052"
+    },
+    {
+     "name": "MUST_181026-CHI- BEGUN -JOGNIYA MATA -AV -DINESH SANADHYA/WhatsApp Video 2026-10-18 at 15.11.31.mp4.ewc2",
+     "modified": "20261018114052"
+    }
+   ]
+  },
+  {
+   "path": "/CHITORGARH/OCTOBER_2026/191026",
+   "files": [
+    {
+     "name": "19102026-CHI -BEGUN -JOGNIYA MATA -AV -DINESH SANADHYA/WhatsApp Video 2026-10-19 at 14.32.54.mp4",
+     "modified": "20261019104411"
+    },
+    {
+     "name": "19102026-CHI -BEGUN -JOGNIYA MATA -AV -DINESH SANADHYA/WhatsApp Video 2026-10-19 at 14.32.54.mp4.ewc2",
+     "modified": "20261019104411"
+    },
+    {
+     "name": "19102026-CHI -BEGUN -JOGNIYA MATA -AV -DINESH SANADHYA/WhatsApp Video 2026-10-19 at 14.33.04.mp4",
+     "modified": "20261019104411"
+    }
+   ]
+  },
+  {
+   "path": "/CHITORGARH/OCTOBER_2026/201026/20102026-CHI -BEGUN -JOGNIYA MATA -AV -DINESH SANADHYA",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-20 at 16.54.20.mp4",
+     "modified": "20261020141121"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-20 at 16.54.20.mp4.ewc2",
+     "modified": "20261020141121"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-20 at 16.54.21.mp4",
+     "modified": "20261020141121"
+    }
+   ]
+  },
+  {
+   "path": "/CHITORGARH/OCTOBER_2026/201026/201026_CHI_MOOSAM_AV_PK",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-20 at 15.43.59.mp4",
+     "modified": "20261020101735"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-20 at 15.43.59.mp4.ewc2",
+     "modified": "20261020101735"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-20 at 15.44.00.mp4",
+     "modified": "20261020101736"
+    }
+   ]
+  },
+  {
+   "path": "/DEEG/OCT/161026/161026_DEEG_BETHAK_AV_AJAY",
+   "files": [
+    {
+     "name": "WhatsApp Image 2026-10-16 at 06.28.01.jpeg",
+     "modified": "20261016074258"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 06.28.04.mp4",
+     "modified": "20261016074306"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 06.28.04.mp4.ewc2",
+     "modified": "20261016074306"
+    }
+   ]
+  },
+  {
+   "path": "/DEEG/OCT/161026/161026_DEEG_NIRIKSHAN_AV_AJAY",
+   "files": [
+    {
+     "name": "WhatsApp Image 2026-10-16 at 06.23.38 (1).jpeg",
+     "modified": "20261016074026"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-16 at 06.23.38.jpeg",
+     "modified": "20261016074024"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-16 at 06.23.39 (1).jpeg",
+     "modified": "20261016074032"
+    }
+   ]
+  },
+  {
+   "path": "/DEEG/OCT/171026/171026_DEEG_JAWAHAR SINGH BEDHAM_AV_AJAY",
+   "files": [
+    {
+     "name": "WhatsApp Image 2026-10-17 at 06.15.07.jpeg",
+     "modified": "20261017030708"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-17 at 06.15.08.jpeg",
+     "modified": "20261017030710"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-17 at 06.15.09.jpeg",
+     "modified": "20261017030713"
+    }
+   ]
+  },
+  {
+   "path": "/DEEG/OCT/171026/171026_DEEG_POLICE KARYAWAI_AV_AJAY",
+   "files": [
+    {
+     "name": "WhatsApp Image 2026-10-17 at 06.12.55.jpeg",
+     "modified": "20261017030537"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-17 at 06.12.56.jpeg",
+     "modified": "20261017030541"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-17 at 06.12.57.jpeg",
+     "modified": "20261017030544"
+    }
+   ]
+  },
+  {
+   "path": "/DUNGARPUR/2026/October/161026",
+   "files": [
+    {
+     "name": "161026_DNP_PARSHIKSJHAN_AVB_PUNEET/WhatsApp Video 2026-10-16 at 12.13.29.mp4",
+     "modified": "20261016070413"
+    },
+    {
+     "name": "161026_DNP_PARSHIKSJHAN_AVB_PUNEET/WhatsApp Video 2026-10-16 at 12.13.29.mp4.ewc2",
+     "modified": "20261016070413"
+    },
+    {
+     "name": "161026_DNP_PARSHIKSJHAN_AVB_PUNEET/WhatsApp Video 2026-10-16 at 12.13.30.mp4",
+     "modified": "20261016070428"
+    }
+   ]
+  },
+  {
+   "path": "/DUNGARPUR/2026/October/191026",
+   "files": [
+    {
+     "name": "191026_DUR_SHAV MIL_AV_PUNEET/Thumbs.db",
+     "modified": "20261019083321"
+    },
+    {
+     "name": "191026_DUR_SHAV MIL_AV_PUNEET/WhatsApp Image 2026-10-19 at 13.43.12.jpeg",
+     "modified": "20261019083332"
+    },
+    {
+     "name": "191026_DUR_SHAV MIL_AV_PUNEET/WhatsApp Video 2026-10-19 at 13.43.10.mp4",
+     "modified": "20261019083330"
+    }
+   ]
+  },
+  {
+   "path": "/DUNGARPUR/2026/October/201026/201026_ DNP _ WADI VISERJN_AVB_SUBHASH KUMAR",
+   "files": [
+    {
+     "name": "WhatsApp Image 2026-10-20 at 10.51.40.jpeg",
+     "modified": "20261020052447"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-20 at 10.51.40.mp4",
+     "modified": "20261020052447"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-20 at 10.51.40.mp4.ewc2",
+     "modified": "20261020052447"
+    }
+   ]
+  },
+  {
+   "path": "/DUNGARPUR/2026/October/201026/201026_DNP_RAVAN_AV_PUNEET",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-20 at 20.04.07.mp4",
+     "modified": "20261020160158"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-20 at 20.04.07.mp4.ewc2",
+     "modified": "20261020160158"
+    }
+   ]
+  },
+  {
+   "path": "/Delhi/OCT 2026/151026/161026_DEL_TIRANGA RELLY_AV_ASHWANI",
+   "files": [
+    {
+     "name": "GFDF.mp4",
+     "modified": "20261016115908"
+    },
+    {
+     "name": "GFDF.mp4.ewc2",
+     "modified": "20261016115908"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 17.25.33 (1).mp4",
+     "modified": "20261016120025"
+    }
+   ]
+  },
+  {
+   "path": "/Delhi/OCT 2026/161026",
+   "files": [
+    {
+     "name": "161026_DEL_MADAN RATHORE_AB_BHARAT 24/AQOIJ-PnIZ_ZuojE2t7ncg7VIEjwur_vu1G_UjsUEmzxkRVSLwLdBXfC5SRHvuLm_SF7RPsW3v0ub5hbSoXWauqYyKf-X5okpxFCAJQ.mp4",
+     "modified": "20261016131414"
+    }
+   ]
+  },
+  {
+   "path": "/Delhi/OCT 2026/171026/171026_DEL_BHUPENDRA YADAV_AV_ASHVINI",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-17 at 12.29.11.mp4",
+     "modified": "20261017070047"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-17 at 12.29.11.mp4.ewc2",
+     "modified": "20261017070047"
+    }
+   ]
+  },
+  {
+   "path": "/Delhi/OCT 2026/171026/171026_DEL_NITIN NABIN_AV_MUKESH",
+   "files": [
+    {
+     "name": "WhatsApp Image 2026-10-17 at 14.37.37.jpeg",
+     "modified": "20261017091134"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-17 at 14.37.38 (1).jpeg",
+     "modified": "20261017091134"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-17 at 14.37.38.jpeg",
+     "modified": "20261017091134"
+    }
+   ]
+  },
+  {
+   "path": "/HARYANA/2026/OCT 2026/161026/161026_HR_ACCIDENT_AV_THANESHWAR",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 19.22.48.mp4",
+     "modified": "20261016135307"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 19.22.48.mp4.ewc2",
+     "modified": "20261016135307"
+    }
+   ]
+  },
+  {
+   "path": "/HARYANA/2026/OCT 2026/161026/161026_HR_CM HEAD QUTAR  DAURA_AV_THANESHWAR",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 17.46.02.mp4",
+     "modified": "20261016121819"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 17.46.02.mp4.ewc2",
+     "modified": "20261016121819"
+    }
+   ]
+  },
+  {
+   "path": "/HARYANA/2026/OCT 2026/161026/161026_HR_HATYA_AVBB_TN",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 11.42.07.mp4",
+     "modified": "20261016071435"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 11.42.07.mp4.ewc2",
+     "modified": "20261016071435"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 11.45.16.mp4",
+     "modified": "20261016071356"
+    }
+   ]
+  },
+  {
+   "path": "/HARYANA/2026/OCT 2026/161026/161026_HR_NAYAB SAINI_AV_TN",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 12.08.24.mp4",
+     "modified": "20261016071105"
+    }
+   ]
+  },
+  {
+   "path": "/HAUMANGARH/2026/OCTober/161026/161026_HUN_HADSA_AV-HARPEET",
+   "files": [
+    {
+     "name": "WhatsApp Image 2026-10-16 at 21.10.11 (1).jpeg",
+     "modified": "20261016161056"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-16 at 21.10.11 (2).jpeg",
+     "modified": "20261016161056"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-16 at 21.10.11.jpeg",
+     "modified": "20261016161056"
+    }
+   ]
+  },
+  {
+   "path": "/HAUMANGARH/2026/OCTober/161026/161026_hmh_fareshare_party_avb_kapik",
+   "files": [
+    {
+     "name": "VID-20261016-WA0008.mp4",
+     "modified": "20261016105648"
+    },
+    {
+     "name": "VID-20261016-WA0008.mp4.ewc2",
+     "modified": "20261016105648"
+    },
+    {
+     "name": "VID-20261016-WA0009.mp4",
+     "modified": "20261016105644"
+    }
+   ]
+  },
+  {
+   "path": "/HAUMANGARH/2026/OCTober/161026/161026_hmh_finice_ka_virodh_avb_kapil",
+   "files": [
+    {
+     "name": "VID-20261016-WA0004.mp4",
+     "modified": "20261016105552"
+    },
+    {
+     "name": "VID-20261016-WA0004.mp4.ewc2",
+     "modified": "20261016105552"
+    },
+    {
+     "name": "VID-20261016-WA0005.mp4",
+     "modified": "20261016105601"
+    }
+   ]
+  },
+  {
+   "path": "/HAUMANGARH/2026/OCTober/171026",
+   "files": [
+    {
+     "name": "171026_hmh_bjp_meating_avb_kapil/VID-20261017-WA0010.mp4",
+     "modified": "20261017142854"
+    },
+    {
+     "name": "171026_hmh_bjp_meating_avb_kapil/VID-20261017-WA0011.mp4",
+     "modified": "20261017142901"
+    }
+   ]
+  },
+  {
+   "path": "/JALORE/2026/October/22-10-26",
+   "files": [
+    {
+     "name": "221026_Jlo_Hadsa_3mot_av_lunaram/hDgcZfZn9sgyn7aZ.MP4",
+     "modified": "20261022064808"
+    },
+    {
+     "name": "221026_Jlo_Hadsa_3mot_av_lunaram/hDgcZfZn9sgyn7aZ.MP4.ewc2",
+     "modified": "20261022064808"
+    }
+   ]
+  },
+  {
+   "path": "/JODHPUR/OCTOBER 2026/161026/161026_JDR 2_MARPEET_DIXIT",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 09.29.17 (1).mp4",
+     "modified": "20261016040613"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 09.29.17 (1).mp4.ewc2",
+     "modified": "20261016040613"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 09.29.17.mp4",
+     "modified": "20261016040609"
+    }
+   ]
+  },
+  {
+   "path": "/JODHPUR/OCTOBER 2026/161026/161026_JDR 9_HADSA_AV_SATYANDRA",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 11.30.07.mp4",
+     "modified": "20261016072152"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 12.02.59.mp4",
+     "modified": "20261016072157"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 12.03.03.mp4",
+     "modified": "20261016072200"
+    }
+   ]
+  },
+  {
+   "path": "/JODHPUR/OCTOBER 2026/161026/161026_JDR20_BAORI_  PANCHAYAT CHUNAV AV_DINESH KUMAR SARASWAT",
+   "files": []
+  },
+  {
+   "path": "/JODHPUR/OCTOBER 2026/161026/161026_JDR_BOMARAM BORWEL_AV-HARISH",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 18.06.47.mp4",
+     "modified": "20261016123659"
+    }
+   ]
+  },
+  {
+   "path": "/Jaipur/OCTOBER/161026/1320",
+   "files": [
+    {
+     "name": "WhatsApp Image 2026-10-16 at 13.00.09.jpeg",
+     "modified": "20261016073038"
+    }
+   ]
+  },
+  {
+   "path": "/Jaipur/OCTOBER/161026/151026_jpr_Greece_visit_comprehensive_rituraj_spl के विजुअल्स व फोटो",
+   "files": [
+    {
+     "name": "Thumbs.db",
+     "modified": "20261016094042"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-15 at 23.51.37.jpeg",
+     "modified": "20261016021042"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-15 at 23.51.38 (1).jpeg",
+     "modified": "20261016021034"
+    }
+   ]
+  },
+  {
+   "path": "/Jaipur/OCTOBER/161026/161026_ALW 21_BARISH_AV_MANOJ",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 07.37.25 (1).mp4",
+     "modified": "20261016021954"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 07.37.25.mp4",
+     "modified": "20261016021949"
+    }
+   ]
+  },
+  {
+   "path": "/Jaipur/OCTOBER/161026/161026_HUN_HADSA_AV-HARPEET",
+   "files": [
+    {
+     "name": "WhatsApp Image 2026-10-16 at 21.10.11 (1).jpeg",
+     "modified": "20261016155621"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-16 at 21.10.11 (2).jpeg",
+     "modified": "20261016155621"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-16 at 21.10.11.jpeg",
+     "modified": "20261016155621"
+    }
+   ]
+  },
+  {
+   "path": "/Jhunjhunu/Jhunjhunu/2026",
+   "files": []
+  },
+  {
+   "path": "/Jhunjhunu/SINGHANA/221026_JJN_PUNY TITHI_AVB_HARSH",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-22 at 12.55.48 (1).mp4",
+     "modified": "20261022080859"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-22 at 12.55.48 (1).mp4.ewc2",
+     "modified": "20261022080859"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-22 at 12.55.48.mp4",
+     "modified": "20261022080819"
+    }
+   ]
+  },
+  {
+   "path": "/Jhunjhunu/udaipurwati/221026",
+   "files": [
+    {
+     "name": "221026_JJN8_PRATIMA KHANDIT MAMALA_AVB_VIKAS/WhatsApp Image 2026-10-22 at 10.13.13.jpeg",
+     "modified": "20261022044604"
+    },
+    {
+     "name": "221026_JJN8_PRATIMA KHANDIT MAMALA_AVB_VIKAS/WhatsApp Image 2026-10-22 at 10.13.14 (1).jpeg",
+     "modified": "20261022044604"
+    },
+    {
+     "name": "221026_JJN8_PRATIMA KHANDIT MAMALA_AVB_VIKAS/WhatsApp Image 2026-10-22 at 10.13.14.jpeg",
+     "modified": "20261022044604"
+    }
+   ]
+  },
+  {
+   "path": "/KARAULI/OCT 2026/161026/161026_KRL_BARISH_AV_MANOJ",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 07.24.26.mp4",
+     "modified": "20261016023823"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 07.24.26.mp4.ewc2",
+     "modified": "20261016023823"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 07.25.08.mp4",
+     "modified": "20261016023823"
+    }
+   ]
+  },
+  {
+   "path": "/KARAULI/OCT 2026/161026/161026_KRO 3_MOOSAM_AV_MANISH",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 07.15.22.mp4",
+     "modified": "20261016015738"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 07.15.22.mp4.ewc2",
+     "modified": "20261016015738"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 07.15.24.mp4",
+     "modified": "20261016015738"
+    }
+   ]
+  },
+  {
+   "path": "/KARAULI/OCT 2026/191026",
+   "files": [
+    {
+     "name": "191026_KRO_RAS TO IAS PRAMOSON_AV_MANISH/WhatsApp Video 2026-10-19 at 14.54.48 (1).mp4",
+     "modified": "20261019094829"
+    },
+    {
+     "name": "191026_KRO_RAS TO IAS PRAMOSON_AV_MANISH/WhatsApp Video 2026-10-19 at 14.54.48.mp4",
+     "modified": "20261019094829"
+    },
+    {
+     "name": "191026_KRO_RAS TO IAS PRAMOSON_AV_MANISH/WhatsApp Video 2026-10-19 at 14.54.48.mp4.ewc2",
+     "modified": "20261019094829"
+    }
+   ]
+  },
+  {
+   "path": "/KARAULI/OCT 2026/201026",
+   "files": []
+  },
+  {
+   "path": "/KOTPUTLI - BEHROR/OCT 2026/201026",
+   "files": [
+    {
+     "name": "201026_KOTPUTLI_MOUT_AV-RAMKANT/WhatsApp Video 2026-10-20 at 11.02.37.mp4",
+     "modified": "20261020053316"
+    },
+    {
+     "name": "201026_KOTPUTLI_MOUT_AV-RAMKANT/WhatsApp Video 2026-10-20 at 11.02.37.mp4.ewc2",
+     "modified": "20261020053316"
+    },
+    {
+     "name": "201026_KOTPUTLI_MOUT_AV-RAMKANT/WhatsApp Video 2026-10-20 at 11.02.41.mp4",
+     "modified": "20261020053317"
+    }
+   ]
+  },
+  {
+   "path": "/Kota/OCT2026/161026/161026-kta-Gang-Pakdi-avb-Gulmohd",
+   "files": [
+    {
+     "name": "IMG-20261016-WA0035.jpg",
+     "modified": "19691231235959"
+    },
+    {
+     "name": "IMG-20261016-WA0036.jpg",
+     "modified": "19691231235959"
+    },
+    {
+     "name": "IMG-20261016-WA0037.jpg",
+     "modified": "19691231235959"
+    }
+   ]
+  },
+  {
+   "path": "/Kota/OCT2026/161026/161026-kta-Prasuta-Case-av-Gulmohd",
+   "files": [
+    {
+     "name": "IMG-20261016-WA0002.jpg",
+     "modified": "19691231235959"
+    },
+    {
+     "name": "IMG-20261016-WA0016.jpg",
+     "modified": "19691231235959"
+    },
+    {
+     "name": "VID-20261016-WA0003.mp4",
+     "modified": "19691231235959"
+    }
+   ]
+  },
+  {
+   "path": "/Kota/OCT2026/161026/161026-kta-Water- West -av-Gulmohd",
+   "files": [
+    {
+     "name": "VID-20261016-WA0066.mp4",
+     "modified": "19691231235959"
+    },
+    {
+     "name": "VID-20261016-WA0066.mp4.ewc2",
+     "modified": "19691231235959"
+    },
+    {
+     "name": "VID-20261016-WA0067.mp4",
+     "modified": "19691231235959"
+    }
+   ]
+  },
+  {
+   "path": "/Kota/OCT2026/161026/161026_KTA_BEERLA_VISIT_WT_BHANWAR",
+   "files": [
+    {
+     "name": "VISUALS.mpg",
+     "modified": "20261016101840"
+    },
+    {
+     "name": "VISUALS.mpg.ese2",
+     "modified": "20261017024507"
+    },
+    {
+     "name": "VISUALS.mpg.ewc2",
+     "modified": "20261016101840"
+    }
+   ]
+  },
+  {
+   "path": "/MADHYA PRADESH/OCT/171026/171026_MP_CM MOHAN YADAV_AB_SHIVRAJ",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-17 at 16.15.26.mp4",
+     "modified": "20261017104604"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-17 at 16.15.26.mp4.ewc2",
+     "modified": "20261017104604"
+    }
+   ]
+  },
+  {
+   "path": "/MADHYA PRADESH/OCT/171026/171026_MP_MOHAN YADAV TWEET_AV_SHIVRAJ",
+   "files": [
+    {
+     "name": "WhatsApp Image 2026-10-17 at 12.07.39.jpeg",
+     "modified": "20261017065524"
+    }
+   ]
+  },
+  {
+   "path": "/MADHYA PRADESH/OCT/171026/171026_MP_MOHAN YADAV_AV_SHIVRAJ",
+   "files": [
+    {
+     "name": "WhatsApp Image 2026-10-17 at 11.54.00.jpeg",
+     "modified": "20261017062823"
+    }
+   ]
+  },
+  {
+   "path": "/MADHYA PRADESH/OCT/181026",
+   "files": [
+    {
+     "name": "181026_MP_SHIVRAJ SINGH_AVB_SHIVRAJ/WhatsApp Video 2026-10-18 at 07.52.37.mp4",
+     "modified": "20261018023627"
+    },
+    {
+     "name": "181026_MP_SHIVRAJ SINGH_AVB_SHIVRAJ/WhatsApp Video 2026-10-18 at 07.52.37.mp4.ewc2",
+     "modified": "20261018023627"
+    },
+    {
+     "name": "181026_MP_SHIVRAJ SINGH_AVB_SHIVRAJ/WhatsApp Video 2026-10-18 at 07.52.38.mp4",
+     "modified": "20261018023627"
+    }
+   ]
+  },
+  {
+   "path": "/NAGOUR/2026/October_2026/19_OCT/19_10_2026_garbha _mahotsav_suresh_parbatsar",
+   "files": [
+    {
+     "name": "VID-20261017-WA0311.mp4",
+     "modified": "20261018163204"
+    },
+    {
+     "name": "VID-20261018-WA0135.mp4",
+     "modified": "20261018163228"
+    },
+    {
+     "name": "VID-20261019-WA0019.mp4",
+     "modified": "20261019033850"
+    }
+   ]
+  },
+  {
+   "path": "/NAGOUR/2026/October_2026/201026",
+   "files": [
+    {
+     "name": "MARKETING_201026_NGR_TANAV_AV_JINU SIR/WhatsApp Video 2026-10-20 at 12.51.53.mp4",
+     "modified": "20261020072359"
+    },
+    {
+     "name": "MARKETING_201026_NGR_TANAV_AV_JINU SIR/WhatsApp Video 2026-10-20 at 12.51.53.mp4.ewc2",
+     "modified": "20261020072359"
+    },
+    {
+     "name": "MARKETING_201026_NGR_TANAV_AV_JINU SIR/WhatsApp Video 2026-10-20 at 12.51.54.mp4",
+     "modified": "20261020072407"
+    }
+   ]
+  },
+  {
+   "path": "/Pratapgarh/October/17/171026_pratapgarh_bjp pradeshadhyksh ke bayan ko lekar congres avb_sanjay ",
+   "files": [
+    {
+     "name": "VID-20261017-WA0011.mp4",
+     "modified": "20261017092937"
+    },
+    {
+     "name": "VID-20261017-WA0012.mp4",
+     "modified": "20261017092938"
+    },
+    {
+     "name": "VID-20261017-WA0014.mp4",
+     "modified": "20261017092938"
+    }
+   ]
+  },
+  {
+   "path": "/Rajsamand/2026/OCT 2026/161026/161026_RAJSAMAND_BHAJAN_SANDHYA_AV_ASHISH",
+   "files": [
+    {
+     "name": "VISUAL__Full HD 1080p_MEDIUM_FR30_(3).mp4",
+     "modified": "20261016121027"
+    },
+    {
+     "name": "VISUAL__Full HD 1080p_MEDIUM_FR30_(3).mp4.ewc2",
+     "modified": "20261016121027"
+    }
+   ]
+  },
+  {
+   "path": "/Rajsamand/2026/OCT 2026/161026/161026_RAJSAMAND_POLICE_MARCH_AV_ASHISH",
+   "files": [
+    {
+     "name": "VISUAL__Full HD 1080p_MEDIUM_FR30_(1).mp4",
+     "modified": "20261016051913"
+    },
+    {
+     "name": "VISUAL__Full HD 1080p_MEDIUM_FR30_(1).mp4.ewc2",
+     "modified": "20261016051913"
+    }
+   ]
+  },
+  {
+   "path": "/Rajsamand/2026/OCT 2026/161026/161026_RAJSAMAND_PRASHIKSHAN_SHIVIR_AV_ASHISH",
+   "files": [
+    {
+     "name": "VISUAL__Full HD 1080p_MEDIUM_FR30_(2).mp4",
+     "modified": "20261016115336"
+    },
+    {
+     "name": "VISUAL__Full HD 1080p_MEDIUM_FR30_(2).mp4.ewc2",
+     "modified": "20261016115336"
+    }
+   ]
+  },
+  {
+   "path": "/Rajsamand/2026/OCT 2026/161026/161026_RAJSAMAND_SNAKE_RESCUE_AV_ASHISH",
+   "files": [
+    {
+     "name": "VID-20261016-WA0023.mp4",
+     "modified": "20261016120023"
+    },
+    {
+     "name": "VID-20261016-WA0023.mp4.ewc2",
+     "modified": "20261016120023"
+    }
+   ]
+  },
+  {
+   "path": "/SIROHI/OCT/161026/161026_SIR_CHORI KA KHULASA_AV_MANOJ",
+   "files": [
+    {
+     "name": "WhatsApp Image 2026-10-16 at 16.35.05.jpeg",
+     "modified": "20261016110542"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 16.35.06.mp4",
+     "modified": "20261016110557"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 16.35.06.mp4.ewc2",
+     "modified": "20261016110557"
+    }
+   ]
+  },
+  {
+   "path": "/SIROHI/OCT/161026/161026_SIR_YUVAK KUDA_AV_KAMLESH",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 12.26.18.mp4",
+     "modified": "20261016070035"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 12.26.18.mp4.ewc2",
+     "modified": "20261016070035"
+    }
+   ]
+  },
+  {
+   "path": "/SIROHI/OCT/161026/161026_Sirohi_Afim_Pakda_Avb_Ashok",
+   "files": [
+    {
+     "name": "Bite01 Dr Ajay Singh Rathod SP.mp4",
+     "modified": "20261016112018"
+    },
+    {
+     "name": "VID-20261016-WA0050.mp4",
+     "modified": "20261016111959"
+    },
+    {
+     "name": "VID-20261016-WA0050.mp4.ewc2",
+     "modified": "20261016111959"
+    }
+   ]
+  },
+  {
+   "path": "/SIROHI/OCT/161026/161026_Sirohi_Avedh_Ganje_Khiti_Pakdi_PC_Avb_Ashok",
+   "files": [
+    {
+     "name": "Bite01 Dr Ajay Singh rathod SP.mp4",
+     "modified": "20261016100051"
+    },
+    {
+     "name": "Bite01 Dr Ajay Singh rathod SP.mp4.ewc2",
+     "modified": "20261016100051"
+    },
+    {
+     "name": "VID-20261016-WA0029.mp4",
+     "modified": "20261016100049"
+    }
+   ]
+  },
+  {
+   "path": "/SRIGANGANAGAR/OCTOBER 2026/16/1610_SGNR TANTIA UNIVERSITY _AVB_SUNIL",
+   "files": [
+    {
+     "name": "IMG-20261016-WA0000.jpg",
+     "modified": "20261016023021"
+    },
+    {
+     "name": "IMG-20261016-WA0001.jpg",
+     "modified": "20261016023020"
+    },
+    {
+     "name": "IMG-20261016-WA0002.jpg",
+     "modified": "20261016023018"
+    }
+   ]
+  },
+  {
+   "path": "/SRIGANGANAGAR/OCTOBER 2026/16/1610_SGNR_AVB_PATTE_VITARAN_HEM_RSNR_GGN13",
+   "files": [
+    {
+     "name": "video1285.mp4",
+     "modified": "20261016131256"
+    },
+    {
+     "name": "video1285.mp4.ewc2",
+     "modified": "20261016131256"
+    },
+    {
+     "name": "video1286.mp4",
+     "modified": "20261016131326"
+    }
+   ]
+  },
+  {
+   "path": "/SRIGANGANAGAR/OCTOBER 2026/17/171026_GGN-2_ACCIDENT_AV_SURATGARH",
+   "files": [
+    {
+     "name": "VID-20261017-WA0000.mp4",
+     "modified": "20261017025003"
+    },
+    {
+     "name": "VID-20261017-WA0000.mp4.ewc2",
+     "modified": "20261017025003"
+    },
+    {
+     "name": "VID-20261017-WA0001.mp4",
+     "modified": "20261017025014"
+    }
+   ]
+  },
+  {
+   "path": "/SRIGANGANAGAR/OCTOBER 2026/17/1710_SGNR CCTV FUTAGE _AV_SUNIL",
+   "files": [
+    {
+     "name": "VID-20261017-WA0004.mp4",
+     "modified": "20261017120650"
+    },
+    {
+     "name": "VID-20261017-WA0004.mp4.ewc2",
+     "modified": "20261017120650"
+    }
+   ]
+  },
+  {
+   "path": "/Sawaimadhopur/2026/OCT/181026",
+   "files": [
+    {
+     "name": "191026_SWM_BIJLI GIRNE SE MOUT_AVB_MOHAMMD/WhatsApp Video 2026-10-19 at 16.49.09.mp4",
+     "modified": "20261019113538"
+    },
+    {
+     "name": "191026_SWM_BIJLI GIRNE SE MOUT_AVB_MOHAMMD/WhatsApp Video 2026-10-19 at 16.49.09.mp4.ewc2",
+     "modified": "20261019113538"
+    },
+    {
+     "name": "191026_SWM_BIJLI GIRNE SE MOUT_AVB_MOHAMMD/WhatsApp Video 2026-10-19 at 16.49.10.mp4",
+     "modified": "20261019113541"
+    }
+   ]
+  },
+  {
+   "path": "/Sawaimadhopur/2026/OCT/201026",
+   "files": [
+    {
+     "name": "201026_SWM_RAVAN_AV_SANDEEP/WhatsApp Video 2026-10-20 at 21.52.12 (1).mp4",
+     "modified": "20261020163131"
+    },
+    {
+     "name": "201026_SWM_RAVAN_AV_SANDEEP/WhatsApp Video 2026-10-20 at 21.52.12 (1).mp4.ewc2",
+     "modified": "20261020163131"
+    },
+    {
+     "name": "201026_SWM_RAVAN_AV_SANDEEP/WhatsApp Video 2026-10-20 at 21.52.12.mp4",
+     "modified": "20261020163128"
+    }
+   ]
+  },
+  {
+   "path": "/Sikar/2026/OCT/161026/161026_SKR_3 AAROPI ARREST_AV_HUKUM",
+   "files": [
+    {
+     "name": "KHK.mp4",
+     "modified": "20261016133725"
+    },
+    {
+     "name": "KHK.mp4.ewc2",
+     "modified": "20261016133725"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-16 at 19.06.24.jpeg",
+     "modified": "20261016133729"
+    }
+   ]
+  },
+  {
+   "path": "/Sikar/2026/OCT/161026/161026_SKR_FATEHPURSHEKHAWAT_DURGA_POOJA__AVB_RAMESH",
+   "files": [
+    {
+     "name": "bite kamal saini.mp4",
+     "modified": "20261016034008"
+    },
+    {
+     "name": "bite ramesh shrma.mp4",
+     "modified": "20261016034121"
+    },
+    {
+     "name": "vivsal (1).mp4",
+     "modified": "20261016034439"
+    }
+   ]
+  },
+  {
+   "path": "/Sikar/2026/OCT/161026/161026_SKR_FATEHPURSHEKHAWAT_SAVA_SETU_ABHIYAN_AVB_RAMESH",
+   "files": [
+    {
+     "name": "BITE MADUDUDAN BHINDABJP.mp4",
+     "modified": "20261016105955"
+    },
+    {
+     "name": "VID-20261016-WA0060.mp4",
+     "modified": "20261016110006"
+    },
+    {
+     "name": "VID-20261016-WA0060.mp4.ewc2",
+     "modified": "20261016110006"
+    }
+   ]
+  },
+  {
+   "path": "/Sikar/2026/OCT/161026/161026_SKR_NOMINATION_AV_HUKUM",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 15.31.50 (1).mp4",
+     "modified": "20261016100458"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 15.31.50 (1).mp4.ewc2",
+     "modified": "20261016100458"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 15.31.50 (2).mp4",
+     "modified": "20261016100458"
+    }
+   ]
+  },
+  {
+   "path": "/TONK/OCTOBER 2026/171026",
+   "files": [
+    {
+     "name": "171026_TONK_DST KARYAWAI_AV_WAJAHAT/WhatsApp Image 2026-10-17 at 14.45.52.jpeg",
+     "modified": "20261017091954"
+    },
+    {
+     "name": "171026_TONK_DST KARYAWAI_AV_WAJAHAT/WhatsApp Video 2026-10-17 at 14.45.52.mp4",
+     "modified": "20261017092000"
+    },
+    {
+     "name": "171026_TONK_DST KARYAWAI_AV_WAJAHAT/WhatsApp Video 2026-10-17 at 14.45.52.mp4.ewc2",
+     "modified": "20261017092000"
+    }
+   ]
+  },
+  {
+   "path": "/Udaipur/OCT 2026/161026",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 15.01.41.mp4",
+     "modified": "20261016093317"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 15.01.42 (1).mp4",
+     "modified": "20261016093318"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 15.01.42 (2).mp4",
+     "modified": "20261016093319"
+    }
+   ]
+  },
+  {
+   "path": "/Udaipur/OCT 2026/171026/171026_UDR 5_MAMLA DARJ_AV_ABHISHEK",
+   "files": [
+    {
+     "name": "WhatsApp Image 2026-10-17 at 13.33.20.jpeg",
+     "modified": "20261017082301"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-17 at 13.33.29.jpeg",
+     "modified": "20261017082302"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-17 at 13.33.38.jpeg",
+     "modified": "20261017082302"
+    }
+   ]
+  },
+  {
+   "path": "/Udaipur/OCT 2026/171026/171026_UDR_VASUDEV DEVNANI_AV_RAVI",
+   "files": [
+    {
+     "name": "WhatsApp Image 2026-10-17 at 09.52.17 (1).jpeg",
+     "modified": "20261017042452"
+    },
+    {
+     "name": "WhatsApp Image 2026-10-17 at 09.52.17.jpeg",
+     "modified": "20261017042449"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-17 at 09.52.17.mp4",
+     "modified": "20261017042458"
+    }
+   ]
+  },
+  {
+   "path": "/Udaipur/OCT 2026/181026",
+   "files": [
+    {
+     "name": "181026_UDR_SADAK HADSA_AV_NARAYAN DABI/WhatsApp Image 2026-10-18 at 16.52.14.jpeg",
+     "modified": "20261018112320"
+    },
+    {
+     "name": "181026_UDR_SADAK HADSA_AV_NARAYAN DABI/WhatsApp Image 2026-10-18 at 16.52.15.jpeg",
+     "modified": "20261018112320"
+    },
+    {
+     "name": "181026_UDR_SADAK HADSA_AV_NARAYAN DABI/WhatsApp Image 2026-10-18 at 16.52.16 (1).jpeg",
+     "modified": "20261018112320"
+    }
+   ]
+  },
+  {
+   "path": "/balotra/OCT 2026/161026/161026_BALOTRA_ANTF KARWAI_AV_BANSHI",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 19.34.40.mp4",
+     "modified": "20261016140454"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 19.34.40.mp4.ewc2",
+     "modified": "20261016140454"
+    }
+   ]
+  },
+  {
+   "path": "/balotra/OCT 2026/161026/161026_Balotra_navjat_mout_AVB_Banshi",
+   "files": [
+    {
+     "name": "Bite 1 dadi.mp4",
+     "modified": "20261016061332"
+    },
+    {
+     "name": "Bite 2 ashok.mp4",
+     "modified": "20261016061551"
+    },
+    {
+     "name": "Bite pmo.mp4",
+     "modified": "20261016061659"
+    }
+   ]
+  },
+  {
+   "path": "/balotra/OCT 2026/171026",
+   "files": [
+    {
+     "name": "171026_BAL 2_KARYAWAI_AV_BANSHI/WhatsApp Image 2026-10-17 at 08.29.16.jpeg",
+     "modified": "20261017030236"
+    }
+   ]
+  },
+  {
+   "path": "/bharat24/2026/OCT/151026",
+   "files": [
+    {
+     "name": "1510_ING_CHD_MATA MANSA DEVI WKT THANESHWAR_RW_020.mxf",
+     "modified": "20261015021641"
+    },
+    {
+     "name": "1510_ING_CHD_MATA MANSA DEVI WKT THANESHWAR_RW_020.mxf.ewc2",
+     "modified": "20261015021641"
+    }
+   ]
+  },
+  {
+   "path": "/bharat24/2026/OCT/161026",
+   "files": []
+  },
+  {
+   "path": "/bharat24/2026/OCT/181026",
+   "files": [
+    {
+     "name": "181026_HR_Anil Pandit Anmol Bishnoi_AV_BHARAT 24/Thumbs.db",
+     "modified": "20261018164709"
+    },
+    {
+     "name": "181026_HR_Anil Pandit Anmol Bishnoi_AV_BHARAT 24/WhatsApp Audio 2026-10-18 at 20.08.51.aac",
+     "modified": "20261018144048"
+    },
+    {
+     "name": "181026_HR_Anil Pandit Anmol Bishnoi_AV_BHARAT 24/WhatsApp Image 2026-10-18 at 20.08.51.jpeg",
+     "modified": "20261018144043"
+    }
+   ]
+  },
+  {
+   "path": "/bharat24/2026/OCT/191026",
+   "files": [
+    {
+     "name": "CRIME FILE/1610 BULLETIN 1030 PM.mxf",
+     "modified": "20261019143900"
+    }
+   ]
+  },
+  {
+   "path": "/dholpur/2026/OCTOBER 2026/161026/161026_dholpur_vinod_abhiyan_av",
+   "files": [
+    {
+     "name": "1",
+     "modified": "20261016134517"
+    },
+    {
+     "name": "2",
+     "modified": "20261016134519"
+    },
+    {
+     "name": "3",
+     "modified": "20261016134520"
+    }
+   ]
+  },
+  {
+   "path": "/dholpur/2026/OCTOBER 2026/161026/161026_dholpur_vinod_hadsa_avb",
+   "files": [
+    {
+     "name": "1",
+     "modified": "20261016134339"
+    },
+    {
+     "name": "2",
+     "modified": "20261016134341"
+    },
+    {
+     "name": "3",
+     "modified": "20261016134343"
+    }
+   ]
+  },
+  {
+   "path": "/dholpur/2026/OCTOBER 2026/161026/161026_dholpur_vinod_laapata_av",
+   "files": [
+    {
+     "name": "1.mp4",
+     "modified": "20261016115413"
+    },
+    {
+     "name": "1.mp4.ewc2",
+     "modified": "20261016115413"
+    },
+    {
+     "name": "2.mp4",
+     "modified": "20261016115418"
+    }
+   ]
+  },
+  {
+   "path": "/dholpur/2026/OCTOBER 2026/161026/161026_dholpur_vinod_maut_avb",
+   "files": [
+    {
+     "name": "1.mp4",
+     "modified": "20261016134253"
+    },
+    {
+     "name": "1.mp4.ewc2",
+     "modified": "20261016134253"
+    },
+    {
+     "name": "2.mp4",
+     "modified": "20261016134255"
+    }
+   ]
+  },
+  {
+   "path": "/jaisalmer/OCTOBER_2026/161026/161026_JSL_CONGRESS_MEETING_AVBB_SURYAVEER",
+   "files": [
+    {
+     "name": "BITE_PRHALAD_GUNJAL_PARBHARI.mp4",
+     "modified": "20261016052936"
+    },
+    {
+     "name": "BITE_UMMEDARAM_BENIWAL.mp4",
+     "modified": "20261016052735"
+    },
+    {
+     "name": "VUSL_CONGRESS_MEETING.mp4",
+     "modified": "20261016053106"
+    }
+   ]
+  },
+  {
+   "path": "/jaisalmer/OCTOBER_2026/161026/161026_JSL_DEATH_AV_CS DAVE",
+   "files": [
+    {
+     "name": "WhatsApp Video 2026-10-16 at 11.24.20.mp4",
+     "modified": "20261016081727"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 11.24.20.mp4.ewc2",
+     "modified": "20261016081727"
+    },
+    {
+     "name": "WhatsApp Video 2026-10-16 at 11.24.26.mp4",
+     "modified": "20261016081732"
+    }
+   ]
+  },
+  {
+   "path": "/jaisalmer/OCTOBER_2026/161026/161026_JSL_JAISALMER_POLICE_CHORI_KHULASHA_AVB_SURYAVEER",
+   "files": [
+    {
+     "name": "BITE_PREMARAM VISHNOI_SHO.mp4",
+     "modified": "20261016091447"
+    },
+    {
+     "name": "VUSL_CHOR_SHOTS.mp4",
+     "modified": "20261016091607"
+    },
+    {
+     "name": "VUSL_POLICE_CHORI_KHULAASHA.mp4",
+     "modified": "20261016060251"
+    }
+   ]
+  },
+  {
+   "path": "/jaisalmer/OCTOBER_2026/161026/161026_JSL_MAHILA_KISSAN_DIWAS_AVB_SURYAVEER",
+   "files": [
+    {
+     "name": "BITE_DASHRATH_SAGAR.mp4",
+     "modified": "20261016045500"
+    },
+    {
+     "name": "BITE_DASHRATH_SAGAR.mp4.ewc2",
+     "modified": "20261016045500"
+    },
+    {
+     "name": "VUSL_MAHILA_KISAAN_.mp4",
+     "modified": "20261016045507"
+    }
+   ]
+  },
+  {
+   "path": "/pali/October/161026/161026 pali, dipavli mockdrill, AV subhash",
+   "files": [
+    {
+     "name": "VID-20261016-WA0024.mp4",
+     "modified": "20261016113403"
+    },
+    {
+     "name": "VID-20261016-WA0024.mp4.ewc2",
+     "modified": "20261016113403"
+    },
+    {
+     "name": "VID-20261016-WA0025.mp4",
+     "modified": "20261016113424"
+    }
+   ]
+  },
+  {
+   "path": "/pali/October/161026/161026 pali, pali 119 namankn, AV subhash",
+   "files": [
+    {
+     "name": "VID-20261016-WA0009.mp4",
+     "modified": "20261016113629"
+    },
+    {
+     "name": "VID-20261016-WA0009.mp4.ewc2",
+     "modified": "20261016113629"
+    },
+    {
+     "name": "VID-20261016-WA0011.mp4",
+     "modified": "20261016113446"
+    }
+   ]
+  },
+  {
+   "path": "/pali/October/161026/161026 pali, panchayt chunav, AV subhash vokthru",
+   "files": [
+    {
+     "name": "VID-20261016-WA0004.mp4",
+     "modified": "20261016073235"
+    },
+    {
+     "name": "VID-20261016-WA0004.mp4.ewc2",
+     "modified": "20261016073235"
+    },
+    {
+     "name": "VID-20261016-WA0005.mp4",
+     "modified": "20261016073241"
+    }
+   ]
+  },
+  {
+   "path": "/pali/October/161026/161026PAL4_NAMAKAN_AV_RAMJAN",
+   "files": [
+    {
+     "name": "VID-20261016-WA0239.mp4",
+     "modified": "20261016101325"
+    },
+    {
+     "name": "VID-20261016-WA0239.mp4.ewc2",
+     "modified": "20261016101325"
+    }
+   ]
+  }
+ ]
+}

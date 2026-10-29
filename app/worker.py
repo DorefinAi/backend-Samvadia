@@ -34,6 +34,8 @@ def main() -> None:
     periodic = [(60, reset_stale)]
     if not args.no_schedule:
         periodic += [(600, _queue("purge_storage")), (3600, _queue("cleanup"))]
+        if s.footage_check_seconds > 0 and s.ftp_host:
+            periodic.append((s.footage_check_seconds, _queue("footage_scan")))
         if s.mail_enabled:
             periodic.append((s.mail_poll_seconds, _queue("fetch_mail")))
     log = logging.getLogger("worker")

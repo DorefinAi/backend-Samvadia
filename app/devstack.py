@@ -5,7 +5,7 @@ files kept in a folder instead of Supabase, the API on http://localhost:8000 and
     python -m app.devstack             # first run loads sample users, reporters and messages
     python -m app.devstack --reset     # wipe the local database and files, then start fresh
 
-Everything lives in backend/.local/ (git-ignored). FTP uploads land in .local/ftp/vartmaan/incoming/<slug>/.
+Everything lives in backend/.local/ (git-ignored). FTP uploads land in .local/ftp/Vartamaan_DND/<slug>/.
 Ctrl+C stops it all. WhatsApp, Outlook and the real FTP stay off; their settings come later on Render.
 
 Sample logins (local only, never used anywhere else):
@@ -99,7 +99,7 @@ def configure(reset: bool) -> None:
         CORS_ORIGINS="http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:3005",
         STORAGE_BACKEND="local", LOCAL_STORAGE_DIR=str(LOCAL / "storage"), PUBLIC_API_URL=f"http://localhost:{API_PORT}",
         FTP_PROTOCOL="ftp", FTP_HOST="127.0.0.1", FTP_PORT=str(FTP_PORT), FTP_USER="vai", FTP_PASSWORD="vai-local",
-        FTP_BASE_DIR="/vartmaan/incoming", FEED_SECRET="local-feed", OCTOPUS_ALLOWED_IPS="",
+        FTP_BASE_DIR="/Vartamaan_DND", FEED_SECRET="local-feed", OCTOPUS_ALLOWED_IPS="",
         FEED_LINK_BASE="http://localhost:8000/wire", MS_TENANT_ID="", MS_CLIENT_ID="", MS_CLIENT_SECRET="", MS_MAILBOX="",
     )
 

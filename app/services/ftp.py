@@ -5,19 +5,82 @@ so nobody on the newsroom side ever opens a half-written file.
 
 FTP servers differ (IIS, Pure-FTPd, vsftpd, FileZilla): some refuse SIZE, some answer MKD on an
 existing folder with 521 or 553 instead of 550, some need OPTS UTF8 ON before Hindi names work.
+
+Read-only outside FTP_WRITE_ROOT: the newsroom FTP holds every district's footage. Every remote refuses
+makedirs, put, rename and delete for a path that is not FTP_WRITE_ROOT or below it (FtpWriteRefused), whatever
+called it. Listing works everywhere.
 """
 import base64
 import ftplib
 import posixpath
+import stat
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Protocol
 
 from app.config import Settings, get_settings
+
+
+class FtpWriteRefused(PermissionError):
+    """A write, rename or delete outside FTP_WRITE_ROOT."""
+
+
+@dataclass
+class Entry:
+    name: str
+    is_dir: bool
+    size: int = 0
+    modified: datetime | None = None
+
+
+def clean_path(path: str | None) -> str:
+    """Normalised, no trailing slash ("/" stays "/"). Relative paths stay relative (and are refused for writes)."""
+    if not path:
+        return ""
+    norm = posixpath.normpath(path.replace("\\", "/"))
+    if norm.startswith("//"):
+        norm = "/" + norm.lstrip("/")
+    return norm if norm == "/" else norm.rstrip("/")
+
+
+def write_root() -> str:
+    return clean_path(get_settings().ftp_write_root) or "/"
+
+
+def is_writable(path: str) -> bool:
+    """True when path is FTP_WRITE_ROOT or inside it. Case-sensitive, after resolving . and ..: on a
+    case-sensitive server /vartamaan_dnd would be another folder."""
+    root, target = write_root(), clean_path(path)
+    if not target.startswith("/"):
+        return False
+    return root == "/" or target == root or target.startswith(root + "/")
+
+
+def check_writable(*paths: str) -> None:
+    for path in paths:
+        if not is_writable(path):
+            raise FtpWriteRefused(f"Refused: {path!r} is outside FTP_WRITE_ROOT {write_root()!r}; "
+                                  "Samvadia only reads there.")
+
+
+def _above_root(path: str) -> bool:
+    """A parent of the write root: it must already exist, and we never create it."""
+    root = write_root()
+    return root != "/" and root.startswith(clean_path(path).rstrip("/") + "/")
+
+
+def _mlsd_time(value: str | None) -> datetime | None:
+    try:
+        return datetime.strptime((value or "")[:14], "%Y%m%d%H%M%S").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
 
 
 class Remote(Protocol):
     def exists(self, path: str) -> bool: ...
     def makedirs(self, path: str) -> None: ...
     def listdir(self, path: str) -> list[str]: ...
+    def scan(self, path: str) -> list[Entry]: ...  # name, dir flag, size, modified; [] when missing
     def put(self, local_path: str, remote_path: str) -> None: ...
     def size(self, path: str) -> int | None: ...  # None: the server cannot tell us
     def rename(self, src: str, dst: str) -> None: ...
@@ -45,9 +108,12 @@ class FtpRemote:
         return name in self.listdir(parent or "/")
 
     def makedirs(self, path: str) -> None:
+        check_writable(path)
         current = ""
-        for part in path.strip("/").split("/"):
+        for part in clean_path(path).strip("/").split("/"):
             current += "/" + part
+            if _above_root(current):
+                continue
             try:
                 self.ftp.mkd(current)
             except ftplib.error_perm as e:
@@ -66,7 +132,34 @@ class FtpRemote:
                 return []
             raise
 
+    def scan(self, path: str) -> list[Entry]:
+        """MLSD (type, size, modify). A server without MLSD gets names only, each probed with CWD."""
+        try:
+            self.ftp.cwd(path)
+        except ftplib.error_perm:
+            return []
+        try:
+            rows = list(self.ftp.mlsd("", facts=["type", "size", "modify"]))
+        except ftplib.error_perm as e:
+            if str(e)[:3] in ("550", "450"):
+                return []
+            return self._scan_without_mlsd(path)
+        return [Entry(n, f.get("type") == "dir", int(f.get("size") or 0), _mlsd_time(f.get("modify")))
+                for n, f in rows if n not in (".", "..") and f.get("type") in ("dir", "file")]
+
+    def _scan_without_mlsd(self, path: str) -> list[Entry]:
+        out = []
+        for name in self.listdir(path):
+            full = posixpath.join(path, name)
+            try:
+                self.ftp.cwd(full)
+                out.append(Entry(name, True))
+            except ftplib.error_perm:
+                out.append(Entry(name, False, self.size(full) or 0))
+        return out
+
     def put(self, local_path: str, remote_path: str) -> None:
+        check_writable(remote_path)
         with open(local_path, "rb") as f:
             self.ftp.storbinary(f"STOR {remote_path}", f, blocksize=1024 * 1024)
 
@@ -78,9 +171,11 @@ class FtpRemote:
         return int(got) if got is not None else None
 
     def rename(self, src: str, dst: str) -> None:
+        check_writable(src, dst)
         self.ftp.rename(src, dst)
 
     def delete(self, path: str) -> None:
+        check_writable(path)
         self.ftp.delete(path)
 
     def close(self) -> None:
@@ -116,9 +211,12 @@ class SftpRemote:
             return False
 
     def makedirs(self, path: str) -> None:
+        check_writable(path)
         current = ""
-        for part in path.strip("/").split("/"):
+        for part in clean_path(path).strip("/").split("/"):
             current += "/" + part
+            if _above_root(current):
+                continue
             if not self.exists(current):
                 self.sftp.mkdir(current)
 
@@ -128,16 +226,27 @@ class SftpRemote:
         except FileNotFoundError:
             return []
 
+    def scan(self, path: str) -> list[Entry]:
+        try:
+            rows = self.sftp.listdir_attr(path)
+        except FileNotFoundError:
+            return []
+        return [Entry(a.filename, stat.S_ISDIR(a.st_mode or 0), int(a.st_size or 0),
+                      datetime.fromtimestamp(a.st_mtime, timezone.utc) if a.st_mtime else None) for a in rows]
+
     def put(self, local_path: str, remote_path: str) -> None:
+        check_writable(remote_path)
         self.sftp.put(local_path, remote_path)
 
     def size(self, path: str) -> int | None:
         return self.sftp.stat(path).st_size
 
     def rename(self, src: str, dst: str) -> None:
+        check_writable(src, dst)
         self.sftp.posix_rename(src, dst)
 
     def delete(self, path: str) -> None:
+        check_writable(path)
         self.sftp.remove(path)
 
     def close(self) -> None:
@@ -175,4 +284,7 @@ def upload_verified(remote: Remote, local_path: str, remote_path: str, expected_
 
 
 def folder_for(slug: str) -> str:
-    return posixpath.join(get_settings().ftp_base_dir, slug)
+    """Samvadia's own folder for a slug: FTP_BASE_DIR/<slug>, which must sit inside FTP_WRITE_ROOT."""
+    folder = posixpath.join(get_settings().ftp_base_dir, slug)
+    check_writable(folder)
+    return folder

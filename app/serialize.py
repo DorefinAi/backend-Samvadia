@@ -1,16 +1,31 @@
 """JSON shapes the frontends read."""
-from app.models import Item, Media, Message, Reporter, Story, User
+from app.models import Item, Location, Media, Message, Reporter, Story, User
+from app.services.footage import footage_out
+from app.services.reporter_slug import parsed_out
 
 # What the reporter portal shows for an item (news-portal Report.status).
-REPORT_STATUS = {"pending": "reviewing", "approved": "published", "rejected": "rejected"}
+# The portal knows only these four; it can read review_state (and reject_note) for held / sent_back / duplicate.
+REPORT_STATUS = {"pending": "reviewing", "approved": "published", "rejected": "rejected", "held": "reviewing",
+                 "sent_back": "reviewing", "duplicate": "rejected"}
 
 
 def reporter_out(r: Reporter | None) -> dict | None:
     if r is None:
         return None
+    emails = r.email_list
     return {"id": str(r.id), "name": r.name, "name_hi": r.name_hi, "slug_code": r.slug_code, "city_code": r.city_code,
-            "district": r.district, "phone": r.phone, "email": r.email, "active": r.active,
+            "district": r.district, "district_code": r.district_code, "phone": r.phone,
+            "email": emails[0] if emails else None, "emails": emails, "active": r.active,
             "has_login": r.user_id is not None}
+
+
+def district_out(loc: Location | None, *, folder: bool = False) -> dict | None:
+    if loc is None:
+        return None
+    out = {"code": loc.code, "name": loc.name, "name_hi": loc.name_hi}
+    if folder:
+        out["ftp_folder"] = loc.ftp_folder
+    return out
 
 
 def user_out(u: User) -> dict:
@@ -49,6 +64,10 @@ def item_out(item: Item, *, full: bool = False) -> dict:
         "ftp_folder": item.ftp_folder, "received_at": item.received_at.isoformat(),
         "last_message_at": item.last_message_at.isoformat(), "version": item.version, "blind": item.blind,
         "status": "submitted" if item.intake_state == "collecting" else REPORT_STATUS[item.review_state],
+        "reporter_slug": item.reporter_slug, "slug_key": item.slug_key if item.reporter_slug else None,
+        "parsed": parsed_out(item.parsed), "district": district_out(item.district), "kind": item.kind,
+        "footage": footage_out(item),
+        "duplicate_of": str(item.duplicate_of) if item.duplicate_of else None, "event_key": item.event_key,
     }
     if full:
         out["body"] = item.body

@@ -11,10 +11,13 @@ from datetime import datetime, timedelta, timezone
 from app.services.translit import has_devanagari, transliterate
 
 IST = timezone(timedelta(hours=5, minutes=30))
-STORY_TYPES = ("AV", "PKG", "SF")
+# Same list as app.models.STORY_TYPES (the items check constraint); kept here so this module stays
+# free of the database. tests/test_slug.py checks the two match.
+STORY_TYPES = ("AV", "AVB", "PKG", "SF", "WT", "PTC", "BYTE", "LIVE", "TEXT", "BRIEF")
 SUBJECT_MAX_CHARS = 30
 
-SLUG_RE = re.compile(r"^\d{6}_[A-Z]{2,5}_[A-Z0-9]+(?:_[A-Z0-9]+)*_(?:AV|PKG|SF)_[A-Z0-9]+(?:_\d+)?$")
+SLUG_RE = re.compile(r"^\d{6}_[A-Z]{2,5}_[A-Z0-9]+(?:_[A-Z0-9]+)*_(?:" + "|".join(STORY_TYPES)
+                     + r")_[A-Z0-9]+(?:_\d+)?$")
 
 # Words that carry no subject. Hindi ones are removed before transliteration.
 _HINDI_STOPWORDS = {

@@ -148,7 +148,8 @@ def test_approved_story_appears_in_feed(desk, filed_item, octopus):
     assert len(items) == 1
     slug = desk.get(f"/desk/items/{item_id}").json()["item"]["slug"]
     assert items[0]["title"] == f"FLASH {slug}"
-    assert items[0]["guid"] == f"vartmaan-{slug}-v1"
+    story_id = r.json()["story"]["id"]
+    assert items[0]["guid"] == f"vartmaan-{story_id}-v1"  # the story id, not the slug: reporters resend slugs
     assert items[0]["description"].strip().startswith("उदयपुर:")
     assert "संवाददाता: Sunita Sharma, उदयपुर ब्यूरो" in items[0]["description"]
     assert items[0]["category"] == "Udaipur"
