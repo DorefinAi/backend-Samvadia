@@ -109,6 +109,14 @@ def _claim_folder(db: Session, remote: ftp.Remote, item: Item) -> str:
     return ftp.folder_for(slug)
 
 
+def ftp_rename_failed(db: Session, payload: dict, error: str) -> None:
+    """The folder kept its old name: say so on the item, where the desk sees it."""
+    item = _item(db, payload)
+    if item:
+        item.intake_note = f"FTP folder not renamed: {error}"[:500]
+        item_changed(db, item)
+
+
 def ftp_upload_failed(db: Session, payload: dict, error: str) -> None:
     item = _item(db, payload)
     if item:
@@ -122,16 +130,28 @@ def ftp_rename(db: Session, payload: dict) -> None:
     if item is None or not item.slug or item.ftp_folder != old:
         return
     new = ftp.folder_for(item.slug)
+    media_rows = db.scalars(select(Media).where(Media.item_id == item.id, Media.ftp_path.isnot(None))).all()
+    ours = {posixpath.basename(m.ftp_path) for m in media_rows}
     remote = ftp.connect()
     try:
         if remote.exists(old):
+            if remote.exists(new):  # never merge into or replace someone else's folder
+                raise GiveUp(f"Cannot rename FTP folder {old} to {new}: {new} already exists. "
+                             "Change the slug, or sort the folders out on the FTP server and edit again.")
             remote.rename(old, new)
+        elif remote.exists(new):
+            # old is gone and new is there: adopt it only if it is ours (an earlier attempt renamed it, then failed
+            # before the commit): empty, or holding this story's files. Anything else is another story's folder.
+            there = set(remote.listdir(new))
+            if there and not (ours and ours <= there):
+                raise GiveUp(f"FTP folder {new} already exists and isn't this story's (and {old} is gone). "
+                             "Change the slug, or sort the folders out on the FTP server and edit again.")
         else:
             remote.makedirs(new)
     finally:
         remote.close()
     item.ftp_folder = new
-    for media in db.scalars(select(Media).where(Media.item_id == item.id, Media.ftp_path.isnot(None))):
+    for media in media_rows:
         media.ftp_path = posixpath.join(new, posixpath.basename(media.ftp_path))
     item_changed(db, item)
 
@@ -218,11 +238,16 @@ def mail_fetch_since(db: Session) -> datetime:
     return since
 
 
-def _received(m: dict) -> datetime | None:
+def _parse_time(value: str | None) -> datetime | None:
     try:
-        return datetime.fromisoformat((m.get("receivedDateTime") or "").replace("Z", "+00:00"))
+        at = datetime.fromisoformat((value or "").replace("Z", "+00:00"))
     except ValueError:
         return None
+    return at if at.tzinfo else at.replace(tzinfo=timezone.utc)
+
+
+def _received(m: dict) -> datetime | None:
+    return _parse_time(m.get("receivedDateTime"))
 
 
 def fetch_mail(db: Session, payload: dict) -> None:
@@ -236,6 +261,10 @@ def fetch_mail(db: Session, payload: dict) -> None:
     retry: dict[str, dict] = dict(retry_row.value) if retry_row else {}
     messages, delta_link = mail.inbox_delta(state.value["link"] if state else None, since=since)
     in_delta = {m["id"] for m in messages}
+    for message_id, entry in list(retry.items()):  # the cut-off applies to retries too: no fetch, no ingest
+        received = _parse_time(entry.get("received"))
+        if received is not None and received < since:
+            retry.pop(message_id)
     for message_id in [i for i in retry if i not in in_delta]:
         try:
             messages.append(mail.get_message(message_id))
@@ -254,13 +283,18 @@ def fetch_mail(db: Session, payload: dict) -> None:
         for m in old:
             retry.pop(m.get("id"), None)
     messages = [m for m in messages if (_received(m) or since) >= since]
+    db.commit()  # keep what came before the loop (mail_fetch_since, mail_dead) whatever a message does
     for m in messages:
+        # One transaction per message: the row locks it takes (a sent-back item it reopens) are released at once,
+        # not held for the whole poll. A crash mid-batch is safe: the delta link is stored only after the loop,
+        # so the next poll sees these messages again and add_message skips the ones already stored.
         try:
-            with db.begin_nested():  # a failure undoes only this message
-                title = _ingest_mail(db, m)
+            title = _ingest_mail(db, m)
+            db.commit()
         except Exception as e:
+            db.rollback()  # undoes only this message
             log.warning("mail %s failed: %s: %s", m.get("id"), type(e).__name__, e)
-            _mail_failed(db, retry, m["id"], e)
+            _mail_failed(db, retry, m["id"], e, received=_received(m))
             continue
         retry.pop(m["id"], None)
         if title:
@@ -274,7 +308,11 @@ def _ingest_mail(db: Session, m: dict) -> str | None:
     """One email -> item, message and attachment jobs. Returns the headline when it started a new item."""
     sender = ((m.get("from") or {}).get("emailAddress") or {})
     address = (sender.get("address") or "").lower()
-    received = datetime.fromisoformat(m["receivedDateTime"].replace("Z", "+00:00"))
+    received = _received(m)
+    if received is None:
+        raise ValueError(f"receivedDateTime missing or not a date: {m.get('receivedDateTime')!r}")
+    # Ask Graph before add_message: no network call while this transaction may hold an item's row lock
+    attachments = mail.list_attachments(m["id"]) if m.get("hasAttachments") else []
     result = add_message(
         db, source="outlook", external_id=m["id"], sender_contact=address, sender_name=sender.get("name"),
         text=mail.clean_body((m.get("body") or {}).get("content", "")), received_at=received,
@@ -285,8 +323,8 @@ def _ingest_mail(db: Session, m: dict) -> str | None:
     if result is None:
         return None
     item, message, created = result
-    if m.get("hasAttachments"):
-        for a in mail.list_attachments(m["id"]):
+    if attachments:
+        for a in attachments:
             kind = a.get("@odata.type", "")
             if a.get("isInline"):
                 continue  # signature logos and pasted images
@@ -309,8 +347,11 @@ def _ingest_mail(db: Session, m: dict) -> str | None:
     return item.headline if created else None
 
 
-def _mail_failed(db: Session, retry: dict[str, dict], message_id: str, error: Exception) -> None:
+def _mail_failed(db: Session, retry: dict[str, dict], message_id: str, error: Exception,
+                 received: datetime | None = None) -> None:
     entry = retry.get(message_id) or {"attempts": 0, "first_failed_at": now().isoformat()}
+    if received is not None:
+        entry["received"] = received.isoformat()  # so a later cut-off drops it without fetching it again
     if not mail.is_transient(error):
         entry["attempts"] += 1
     entry["error"] = f"{type(error).__name__}: {error}"[:300]
@@ -397,7 +438,7 @@ def cleanup(db: Session, payload: dict) -> None:
 HANDLERS = {
     "finalize_item": (finalize_item, None),
     "ftp_upload": (ftp_upload, ftp_upload_failed),
-    "ftp_rename": (ftp_rename, None),
+    "ftp_rename": (ftp_rename, ftp_rename_failed),
     "fetch_whatsapp_media": (fetch_whatsapp_media, media_download_failed),
     "fetch_mail": (fetch_mail, None),
     "fetch_mail_attachment": (fetch_mail_attachment, media_download_failed),

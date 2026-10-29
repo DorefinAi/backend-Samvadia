@@ -90,6 +90,11 @@ def add_message(db: Session, *, source: str, external_id: str, sender_contact: s
                         conversation_key=conversation_key, received_at=received_at,
                         headline=(subject or first_line(text))[:HEADLINE_MAX], body=text)
     else:
+        if item.review_state == "sent_back":
+            # This reply may reopen it: re-read the row under a lock before changing anything, so a desk decision
+            # made meanwhile is seen and never undone. Only here: other replies take no row lock.
+            db.flush()  # refresh would drop unflushed changes (e.g. an earlier message in the same webhook)
+            db.refresh(item, with_for_update=True)
         if text:
             item.body = f"{item.body}\n\n{text}".strip()
         if not item.headline:
@@ -97,7 +102,7 @@ def add_message(db: Session, *, source: str, external_id: str, sender_contact: s
         item.last_message_at = max(item.last_message_at, received_at)
         if item.intake_state in ("on_ftp", "ftp_failed"):
             item.intake_state = "collecting"  # a reply with more files: upload the new ones too
-        if item.review_state == "sent_back":
+        if item.review_state == "sent_back":  # still, under the lock taken above
             _reply_reopens(db, item)
     message = Message(item_id=item.id, source=source, external_id=external_id, sender_contact=sender_contact,
                       text=text, raw=raw, received_at=received_at)
@@ -138,7 +143,8 @@ def reporter_copy(db: Session, item: Item) -> tuple[str, str]:
 
 def _reply_reopens(db: Session, item: Item) -> None:
     """The reporter answered a send-back: the item is back in the desk's pending queue. No decisions row (those
-    are the desk's labels and need a user); the audit log keeps what was asked, and so does the needs_more row."""
+    are the desk's labels and need a user); the audit log keeps what was asked, and so does the needs_more row.
+    The caller holds the item's row lock (add_message), so review_state here is current, not a stale read."""
     db.add(Audit(actor_id=None, action="item.reply_reopen", target_type="item", target_id=str(item.id),
                  before={"review_state": item.review_state, "reject_note": item.reject_note},
                  after={"review_state": "pending"}))
@@ -260,6 +266,8 @@ def slug_for(db: Session, item: Item) -> str:
     """The folder-safe form of the slug the reporter typed (ASCII, no reporter needed); only without one, the
     house slug built from the reporter, city, subject and type."""
     base = folder_slug(item.reporter_slug) if item.reporter_slug else None
+    # Review note (L7, left as is on purpose): this lets an email from an unknown sender whose subject looks like
+    # a slug upload to FTP without a desk check. Whether to allow that is a product decision, not a bug fix.
     if base:
         return unique_slug_ci(db, item, base[:93].rstrip("_"))  # room for _NN within 96
     reporter = item.reporter

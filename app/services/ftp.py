@@ -7,8 +7,10 @@ FTP servers differ (IIS, Pure-FTPd, vsftpd, FileZilla): some refuse SIZE, some a
 existing folder with 521 or 553 instead of 550, some need OPTS UTF8 ON before Hindi names work.
 
 Read-only outside FTP_WRITE_ROOT: the newsroom FTP holds every district's footage. Every remote refuses
-makedirs, put, rename and delete for a path that is not FTP_WRITE_ROOT or below it (FtpWriteRefused), whatever
-called it. Listing works everywhere.
+makedirs for a path that is not FTP_WRITE_ROOT or below it, and put, rename and delete for a path that is not
+strictly below it (the root itself is never moved or removed), whatever called it (FtpWriteRefused).
+A rename never replaces an existing target (FileExistsError) unless the caller says so (upload_verified's
+.part -> final step). Listing works everywhere.
 """
 import base64
 import ftplib
@@ -47,18 +49,24 @@ def write_root() -> str:
     return clean_path(get_settings().ftp_write_root) or "/"
 
 
-def is_writable(path: str) -> bool:
-    """True when path is FTP_WRITE_ROOT or inside it. Case-sensitive, after resolving . and ..: on a
-    case-sensitive server /vartamaan_dnd would be another folder."""
+def is_writable(path: str, strict: bool = False) -> bool:
+    """True when path is FTP_WRITE_ROOT or inside it (strict: only strictly inside it, for put, rename and
+    delete, so the root itself can never be renamed away or removed). Case-sensitive, after resolving . and ..:
+    on a case-sensitive server /vartamaan_dnd would be another folder."""
     root, target = write_root(), clean_path(path)
     if not target.startswith("/"):
         return False
-    return root == "/" or target == root or target.startswith(root + "/")
+    if target == root:
+        return not strict
+    return root == "/" or target.startswith(root + "/")
 
 
-def check_writable(*paths: str) -> None:
+def check_writable(*paths: str, strict: bool = False) -> None:
     for path in paths:
-        if not is_writable(path):
+        if not is_writable(path, strict):
+            if clean_path(path) == write_root():
+                raise FtpWriteRefused(f"Refused: {path!r} is FTP_WRITE_ROOT itself; it is never written over, "
+                                      "renamed or deleted.")
             raise FtpWriteRefused(f"Refused: {path!r} is outside FTP_WRITE_ROOT {write_root()!r}; "
                                   "Samvadia only reads there.")
 
@@ -83,7 +91,7 @@ class Remote(Protocol):
     def scan(self, path: str) -> list[Entry]: ...  # name, dir flag, size, modified; [] when missing
     def put(self, local_path: str, remote_path: str) -> None: ...
     def size(self, path: str) -> int | None: ...  # None: the server cannot tell us
-    def rename(self, src: str, dst: str) -> None: ...
+    def rename(self, src: str, dst: str, replace: bool = False) -> None: ...  # FileExistsError unless replace
     def delete(self, path: str) -> None: ...
     def close(self) -> None: ...
 
@@ -159,7 +167,7 @@ class FtpRemote:
         return out
 
     def put(self, local_path: str, remote_path: str) -> None:
-        check_writable(remote_path)
+        check_writable(remote_path, strict=True)
         with open(local_path, "rb") as f:
             self.ftp.storbinary(f"STOR {remote_path}", f, blocksize=1024 * 1024)
 
@@ -170,12 +178,14 @@ class FtpRemote:
             return None  # SIZE refused or not implemented
         return int(got) if got is not None else None
 
-    def rename(self, src: str, dst: str) -> None:
-        check_writable(src, dst)
+    def rename(self, src: str, dst: str, replace: bool = False) -> None:
+        check_writable(src, dst, strict=True)
+        if not replace and self.exists(dst):
+            raise FileExistsError(f"Not renaming {src} to {dst}: {dst} already exists on the FTP server.")
         self.ftp.rename(src, dst)
 
     def delete(self, path: str) -> None:
-        check_writable(path)
+        check_writable(path, strict=True)
         self.ftp.delete(path)
 
     def close(self) -> None:
@@ -235,18 +245,20 @@ class SftpRemote:
                       datetime.fromtimestamp(a.st_mtime, timezone.utc) if a.st_mtime else None) for a in rows]
 
     def put(self, local_path: str, remote_path: str) -> None:
-        check_writable(remote_path)
+        check_writable(remote_path, strict=True)
         self.sftp.put(local_path, remote_path)
 
     def size(self, path: str) -> int | None:
         return self.sftp.stat(path).st_size
 
-    def rename(self, src: str, dst: str) -> None:
-        check_writable(src, dst)
+    def rename(self, src: str, dst: str, replace: bool = False) -> None:
+        check_writable(src, dst, strict=True)
+        if not replace and self.exists(dst):  # posix_rename would silently replace it
+            raise FileExistsError(f"Not renaming {src} to {dst}: {dst} already exists on the SFTP server.")
         self.sftp.posix_rename(src, dst)
 
     def delete(self, path: str) -> None:
-        check_writable(path)
+        check_writable(path, strict=True)
         self.sftp.remove(path)
 
     def close(self) -> None:
@@ -274,7 +286,7 @@ def upload_verified(remote: Remote, local_path: str, remote_path: str, expected_
         got = remote.size(part)
         if got is not None and got != expected_size:
             raise IOError(f"Size check failed for {remote_path}: FTP has {got} bytes, expected {expected_size}.")
-        remote.rename(part, remote_path)
+        remote.rename(part, remote_path, replace=True)  # our own file: a retry replaces its earlier copy
     except Exception:
         try:
             remote.delete(part)

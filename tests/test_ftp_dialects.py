@@ -129,7 +129,9 @@ class TornRemote:
     def size(self, path):
         return self.files[path]
 
-    def rename(self, src, dst):
+    def rename(self, src, dst, replace=False):
+        if not replace and dst in self.files:
+            raise FileExistsError(dst)
         self.files[dst] = self.files.pop(src)
 
     def delete(self, path):

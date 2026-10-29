@@ -67,6 +67,50 @@ def test_ftp_writes_outside_the_root_are_refused_and_nothing_changes(server, tmp
     assert (root / "Ajmer" / "2026" / "clip.mp4").read_bytes() == b"newsroom footage"
 
 
+@pytest.mark.parametrize("path,ok", [
+    ("/Vartamaan_DND", False), ("/Vartamaan_DND/", False), ("/Vartamaan_DND/x/..", False), ("/Vartamaan_DND/slug", True),
+    ("/Ajmer/x", False), ("/", False),
+])
+def test_is_writable_strict_excludes_the_root_itself(path, ok):
+    """Review L1: put, rename and delete need a path strictly below the root; makedirs may still name the root."""
+    assert is_writable(path, strict=True) is ok
+
+
+def test_ftp_root_itself_cannot_be_renamed_or_deleted(server, tmp_path):
+    remote, root = server
+    remote.makedirs("/Vartamaan_DND")  # creating (or re-confirming) the root is allowed
+    (root / "Vartamaan_DND" / "slug").mkdir()
+    local = tmp_path / "x.bin"
+    local.write_bytes(b"data")
+    for call in (lambda: remote.rename("/Vartamaan_DND", "/Vartamaan_DND/slug/moved"),
+                 lambda: remote.rename("/Vartamaan_DND/slug", "/Vartamaan_DND"),
+                 lambda: remote.rename("/Vartamaan_DND/slug/..", "/Vartamaan_DND/other"),
+                 lambda: remote.delete("/Vartamaan_DND"),
+                 lambda: remote.delete("/Vartamaan_DND/"),
+                 lambda: remote.put(str(local), "/Vartamaan_DND")):
+        with pytest.raises(FtpWriteRefused):
+            call()
+    assert (root / "Vartamaan_DND" / "slug").is_dir()
+
+
+def test_ftp_rename_never_replaces_an_existing_target(server, tmp_path):
+    """Review L2: renaming onto a name that exists fails clearly instead of overwriting (upload_verified's own
+    .part -> final step may still replace its earlier copy)."""
+    remote, root = server
+    remote.makedirs("/Vartamaan_DND/A")
+    remote.makedirs("/Vartamaan_DND/B")
+    (root / "Vartamaan_DND" / "A" / "a.mp4").write_bytes(b"a")
+    (root / "Vartamaan_DND" / "B" / "b.mp4").write_bytes(b"b")
+    with pytest.raises(FileExistsError):
+        remote.rename("/Vartamaan_DND/A", "/Vartamaan_DND/B")
+    with pytest.raises(FileExistsError):
+        remote.rename("/Vartamaan_DND/A/a.mp4", "/Vartamaan_DND/B/b.mp4")
+    assert (root / "Vartamaan_DND" / "B" / "b.mp4").read_bytes() == b"b"
+    assert (root / "Vartamaan_DND" / "A" / "a.mp4").read_bytes() == b"a"
+    remote.rename("/Vartamaan_DND/A", "/Vartamaan_DND/C")
+    assert (root / "Vartamaan_DND" / "C" / "a.mp4").read_bytes() == b"a"
+
+
 def test_ftp_writes_inside_the_root_work(server, tmp_path):
     remote, root = server
     local = tmp_path / "x.bin"
@@ -123,3 +167,23 @@ def test_sftp_writes_outside_the_root_are_refused(tmp_path):
     remote.rename("/Vartamaan_DND/slug/x.bin.part", "/Vartamaan_DND/slug/x.bin")
     remote.delete("/Vartamaan_DND/slug/x.bin.part")
     assert [c[0] for c in remote.sftp.calls if c[0] != "stat"] == ["mkdir", "mkdir", "put", "posix_rename", "remove"]
+
+
+def test_sftp_refuses_the_root_and_an_existing_target(tmp_path):
+    """Review L1 and L2 on the SFTP class: no call reaches the server for the root, and posix_rename (which would
+    silently replace) is not called when the target exists."""
+    remote = SftpRemote.__new__(SftpRemote)
+    remote.sftp = FakeSftp()
+    for call in (lambda: remote.rename("/Vartamaan_DND", "/Vartamaan_DND/x"), lambda: remote.delete("/Vartamaan_DND"),
+                 lambda: remote.rename("/Vartamaan_DND/x", "/Vartamaan_DND")):
+        with pytest.raises(FtpWriteRefused):
+            call()
+    assert remote.sftp.calls == []
+    existing = SftpRemote.__new__(SftpRemote)
+    existing.sftp = type("Exists", (FakeSftp,), {"__getattr__": lambda self, name: (
+        lambda *args: self.calls.append((name, *args)))})()
+    with pytest.raises(FileExistsError):
+        existing.rename("/Vartamaan_DND/a", "/Vartamaan_DND/b")
+    assert [c[0] for c in existing.sftp.calls] == ["stat"]
+    existing.rename("/Vartamaan_DND/a.part", "/Vartamaan_DND/a", replace=True)
+    assert [c[0] for c in existing.sftp.calls] == ["stat", "posix_rename"]

@@ -99,6 +99,8 @@ def unique_slug(slug: str, taken: set[str]) -> str:
 def slug_error(slug: str) -> str | None:
     if not slug:
         return "Slug is required."
-    if not SLUG_RE.match(slug):
+    # fullmatch, not match: "$" also matches before a trailing newline, so "..._SUNITA" plus a newline would
+    # pass here and then break the FTP commands that use the slug as the folder name.
+    if not isinstance(slug, str) or not SLUG_RE.fullmatch(slug):
         return "Slug must look like DDMMYY_CITY_SUBJECT_TYPE_REPORTER, e.g. 141026_UDR_PARYATAN_SEASON_AV_SUNITA."
     return None

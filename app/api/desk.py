@@ -145,6 +145,10 @@ class ItemPatch(BaseModel):
     slug: str | None = None  # set by hand; must pass the slug check, and stops automatic rebuilds
 
 
+# Columns that are NOT NULL on items: leaving the field out keeps it, an explicit null is a 422 (not a 500)
+_NOT_NULL_FIELDS = ("headline", "body", "priority", "tags")
+
+
 @router.patch("/items/{item_id}")
 def edit_item(item_id: uuid.UUID, patch: ItemPatch, caller: Caller = Depends(require("desk.review")),
               db: Session = Depends(get_db)):
@@ -152,6 +156,10 @@ def edit_item(item_id: uuid.UUID, patch: ItemPatch, caller: Caller = Depends(req
     item = _item(db, item_id, lock=True)
     if patch.version != item.version:
         raise HTTPException(409, "Someone else changed this story. Reload it and try again.")
+    nulls = [f for f in _NOT_NULL_FIELDS if f in patch.model_fields_set and getattr(patch, f) is None]
+    if nulls:
+        raise HTTPException(422, f"{', '.join(nulls)} cannot be null; leave the field out to keep it "
+                                 "(an empty headline or body is \"\").")
     if patch.story_type is not None and patch.story_type not in STORY_TYPES:
         raise HTTPException(422, f"story_type must be one of {', '.join(STORY_TYPES)}.")
     if patch.category is not None and patch.category not in CATEGORIES:
@@ -408,6 +416,13 @@ def duplicate(item_id: uuid.UUID, body: DuplicateIn, caller: Caller = Depends(re
         root = f" of {target.duplicate_of}" if target.duplicate_of else ""
         raise HTTPException(409, f"That story is itself a duplicate{root}. Mark this one a duplicate of the "
                                  "original instead.")
+    # The other end of a chain: this item is already the original of others (B -> A, then A -> C).
+    # Safe against a concurrent B -> A: that call locks this row too, so the two are serialised.
+    pointing = db.scalars(select(Item.id).where(Item.duplicate_of == item.id).order_by(Item.id).limit(1)).first()
+    if pointing is not None:
+        raise HTTPException(409, f"Other stories (e.g. {pointing}) are marked duplicates of this one, so it cannot "
+                                 "become a duplicate itself. Reopen those first, or mark the other story a duplicate "
+                                 "of this one instead.")
     snapshot = _snapshot(item)
     item.review_state, item.reject_reason, item.reject_note = "duplicate", None, _note(body)
     item.duplicate_of = target.id
@@ -682,6 +697,7 @@ def recheck_footage(item_id: uuid.UUID, caller: Caller = Depends(require("desk.r
         raise HTTPException(409, f"Nothing to look for: {reason}. Pick the footage by hand instead.")
     if item.footage_status in ("not_found", "not_checked"):
         item.footage_status, item.footage_wait_until = "waiting", now() + footage.wait_hours()
+    checked = (item.footage_status, item.footage_path)  # what this check is computed for
     db.commit()
     remote = _connect()
     try:
@@ -691,6 +707,11 @@ def recheck_footage(item_id: uuid.UUID, caller: Caller = Depends(require("desk.r
     finally:
         remote.close()
     item = db.get(Item, item_id, with_for_update=True, populate_existing=True)
+    # No lock was held while the FTP answered: if the desk picked (or changed, or cleared) a manual path
+    # meanwhile, this result belongs to the old state; drop it, as footage_scan does.
+    if "manual" in (checked[0], item.footage_status) and (item.footage_status, item.footage_path) != checked:
+        db.rollback()
+        return {"item": item_out(db.get(Item, item_id), full=True)}
     footage.apply(item, match, now())
     item_changed(db, item)
     db.commit()
@@ -713,8 +734,13 @@ def set_footage(item_id: uuid.UUID, body: FootageIn, caller: Caller = Depends(re
             item.footage_wait_until = max(item.received_at + footage.wait_hours(), now() + footage.wait_hours())
     else:
         path = _safe_path(body.path)
-        if footage.under_district(path, district_service.load(db)) is None or path.count("/") < 2:
+        district = footage.under_district(path, district_service.load(db))
+        if district is None or path.count("/") < 2:
             raise HTTPException(422, "Pick a folder or file inside a district folder.")
+        # Footage from another district's folder is almost always a mis-click; admins may still pick it.
+        if item.district_code and district.code != item.district_code and not caller.can("ftp.manage"):
+            raise HTTPException(409, f"{path} is in {district.name}'s folder, but this story is from "
+                                     f"{item.district_code}. Fix the story's district, or ask an admin to pick it.")
         db.commit()  # no lock held while the FTP answers
         remote = _connect()
         try:
@@ -737,10 +763,13 @@ def set_footage(item_id: uuid.UUID, body: FootageIn, caller: Caller = Depends(re
 
 
 def _safe_path(raw: str) -> str:
-    path = ftp.clean_path("/" + raw.strip().lstrip("/"))
-    if ".." in re.split(r"[\\/]", raw) or "\x00" in raw:
+    # Control characters (NUL, CR, LF ...) make ftplib raise ValueError (a 500); refuse them here
+    if ".." in re.split(r"[\\/]", raw) or _CONTROL_CHARS.search(raw):
         raise HTTPException(422, "Bad path.")
-    return path
+    return ftp.clean_path("/" + raw.strip().lstrip("/"))
+
+
+_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
 
 
 def _iso(dt: datetime | None) -> str | None:

@@ -169,6 +169,25 @@ def test_status_waiting_found_and_not_found():
     assert late.footage_status == "not_found"
 
 
+def test_apply_drops_a_result_computed_for_another_state():
+    """Review M3: a check computed before the desk picked (or changed, or cleared) a manual path must not land."""
+    clip = [{"name": "a.mp4", "size": 5, "modified": None}]
+    picked = Item(footage_status="manual", footage_path="/Ajmer/B", footage_files=[{"name": "b.mp4"}], footage_bytes=9)
+    for stale in (footage.Match("/Ajmer/A", "exact", clip, 5),  # automatic result, desk picked B meanwhile
+                  footage.Match("/Ajmer/A", "manual", clip, 5)):  # listing of the old pick A
+        assert footage.apply(picked, stale, AT) is False
+        assert (picked.footage_status, picked.footage_path, picked.footage_bytes) == ("manual", "/Ajmer/B", 9)
+        assert picked.footage_files == [{"name": "b.mp4"}] and picked.footage_checked_at is None
+    # the listing of the desk's own pick still updates its files
+    assert footage.apply(picked, footage.Match("/Ajmer/B", "manual", clip, 5), AT)
+    assert picked.footage_files == clip and picked.footage_bytes == 5
+    # the desk cleared its pick meanwhile: the old manual listing must not become "found"
+    cleared = Item()
+    footage.start(cleared)
+    assert footage.apply(cleared, footage.Match("/Ajmer/B", "manual", clip, 5), AT) is False
+    assert cleared.footage_status == "waiting" and cleared.footage_path is None
+
+
 def test_nothing_to_match_on_stays_not_checked():
     for item in (Item(kind="press_release"), Item(slug_key=None), Item(district=None)):
         footage.start(item)

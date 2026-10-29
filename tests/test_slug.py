@@ -49,6 +49,13 @@ def test_slug_error():
     assert slug_error("JPR_METRO_PHASE2") is not None
 
 
+@pytest.mark.parametrize("tail", ["\n", "\r\n", "\n\n", " ", "\t"])
+def test_slug_error_refuses_trailing_whitespace(tail):
+    # review M1: SLUG_RE.match with "$" let a trailing newline through, and ftplib later refused the folder name
+    assert slug_error("141026_UDR_PARYATAN_SEASON_AV_SUNITA" + tail) is not None
+    assert slug_error(tail + "141026_UDR_PARYATAN_SEASON_AV_SUNITA") is not None
+
+
 @pytest.mark.parametrize("hindi,latin", [
     ("पर्यटन", "paryatan"), ("जयपुर", "jaypur"), ("बारिश", "barish"), ("राजस्थान", "rajasthan"),
     ("कमला", "kamla"), ("भारी", "bhari"), ("क्षेत्र", "kshetr"), ("ज़िला", "zila"),

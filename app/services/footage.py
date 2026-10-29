@@ -506,6 +506,12 @@ def compute(lister: Lister, item) -> Match | None:
 
 def apply(item, match: Match | None, now: datetime) -> bool:
     """Write a check's result onto the item. Returns True when what the desk sees changed."""
+    manual = item.footage_status == "manual"
+    if match is not None and ((match.how == "manual") != manual or (
+            manual and match.path != ftp.clean_path(item.footage_path or ""))):
+        # Computed for another state (the desk picked, changed or cleared a manual path while the FTP was being
+        # read): files from folder A must never land under path B. Leave the item as the desk set it.
+        return False
     before = (item.footage_status, item.footage_path, item.footage_bytes, len(item.footage_files or []))
     item.footage_checked_at = now
     if item.footage_status == "manual":
