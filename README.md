@@ -176,6 +176,18 @@ A story's city is the reporter's city unless the desk sets `city_code`. Changing
 Story types are `AV`, `AVB`, `PKG`, `SF`, `WT`, `PTC`, `BYTE`, `LIVE`, `TEXT` and `BRIEF`. Intake takes the type from
 the reporter's slug when it is one of these. If there is none, the slug builder uses `DEFAULT_STORY_TYPE`.
 
+## Owner console API
+
+Used by the Sentry control centre's People page. Server to server only: the browser never calls it.
+
+- Routes: `GET /owner/people`, `GET /owner/people/{user_id}/permissions`, `PATCH /owner/people/{user_id}`, `PUT /owner/people/{user_id}/overrides`, `GET /owner/history`.
+- On only when `OWNER_API_KEY` is set to 32+ characters. Unset (or shorter): every `/owner` path is a 404. The same value goes into Sentry's server env as `SAMVADIA_OWNER_KEY`.
+- Each call sends `Authorization: Bearer <OWNER_API_KEY>` and `X-Owner-Actor: <sentry username>` (1-64 characters: a-z, 0-9, `.`, `_`, `-`). No cookies, no CSRF.
+- Wrong or missing keys are rate limited per IP (20 in 10 minutes). A valid key always passes.
+- The last active super admin cannot be switched off, demoted, or have `users.manage`, `page.access` or `desk.view` denied. Such a change gets 409 `last_admin`.
+- Errors are `{"error": code, "message": ...}`. Every change is audited with actor `owner:<name>`.
+- **Migration:** the overrides table comes from `alembic/versions/0006_user_permission_overrides.py`. Apply it before using the console: `.venv/Scripts/alembic upgrade head` (Windows; `.venv/bin/alembic` elsewhere).
+
 ## Where things live
 
 ```
