@@ -6,8 +6,8 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.models import Reporter, User
 from app.security import (
-    Caller, assignable_roles, client_ip, current, end_session, login_limiter, permissions_for, start_session,
-    verify_password,
+    PAGE_ROUTES, Caller, assignable_roles, client_ip, current, end_session, load_overrides, login_limiter,
+    start_session, verify_password,
 )
 from app.serialize import reporter_out, user_out
 
@@ -22,7 +22,10 @@ class LoginIn(BaseModel):
 def me_out(caller: Caller) -> dict:
     return {
         "user": user_out(caller.user),
-        "permissions": permissions_for(caller.user.role),
+        # effective: a per-user override (owner console) if there is one, else the role; page.* keys included
+        "permissions": caller.permissions,
+        # the desk app routes this user may open, for its nav and page guard
+        "pages": [route for key, route in PAGE_ROUTES.items() if caller.can(key)],
         "assignable_roles": assignable_roles(caller.user.role),
         "reporter": reporter_out(caller.reporter),
         "csrf_token": caller.session.csrf_token,
@@ -42,7 +45,7 @@ def login(body: LoginIn, request: Request, response: Response, db: Session = Dep
     session = start_session(db, user, response)
     db.commit()
     reporter = db.scalar(select(Reporter).where(Reporter.user_id == user.id))
-    return me_out(Caller(user, session, reporter))
+    return me_out(Caller(user, session, reporter, load_overrides(db, user.id)))
 
 
 @router.post("/auth/logout")

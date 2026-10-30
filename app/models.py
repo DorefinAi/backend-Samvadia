@@ -86,6 +86,17 @@ class User(Base):
     updated_at: Mapped[datetime] = _updated()
 
 
+class UserPermissionOverride(Base):
+    """One permission set on or off for one user, whatever their role says (owner console). No row = the role decides.
+    Keys are checked against app.security.CATALOGUE when written; a key that later leaves the catalogue is ignored."""
+    __tablename__ = "user_permission_overrides"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    permission: Mapped[str] = mapped_column(Text, primary_key=True)
+    allowed: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    updated_at: Mapped[datetime] = _updated()
+
+
 class Reporter(Base):
     """The reporter master: phone/email -> city code and reporter code for the slug."""
     __tablename__ = "reporters"
@@ -350,12 +361,17 @@ class Audit(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     actor_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    # Who acted when it was not a signed-in user: "owner:<sentry username>" (owner console). NULL otherwise.
+    actor: Mapped[str | None] = mapped_column(Text)
     action: Mapped[str] = mapped_column(Text, nullable=False)
     target_type: Mapped[str] = mapped_column(Text, nullable=False)
     target_id: Mapped[str] = mapped_column(Text, nullable=False)
     before: Mapped[dict | None] = mapped_column(JSONB)
     after: Mapped[dict | None] = mapped_column(JSONB)
     created_at: Mapped[datetime] = _created()
+
+
+Index("audit_target_created_idx", Audit.target_type, Audit.created_at.desc(), Audit.id.desc())
 
 
 class Job(Base):

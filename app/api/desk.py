@@ -19,7 +19,7 @@ from app.models import (
     CATEGORIES, FOOTAGE_STATES, ITEM_KINDS, PRIORITIES, REVIEW_STATES, STORY_TYPES, ApproveReason, Audit, Decision,
     DecisionAction, FeedLog, FetchRun, Item, Location, Media, RejectReason, Reporter, ReporterEmail, Story,
 )
-from app.security import Caller, require
+from app.security import ANY_DESK_PAGE, ITEM_PAGES, Caller, require
 from app.serialize import district_out, item_out, reporter_out, story_out
 from app.services import districts as district_service
 from app.services import edits
@@ -78,12 +78,16 @@ def list_items(
     to: datetime | None = Query(None, description="received_at < to (ISO with offset)"),
     district: str | None = Query(None, description="comma list of district codes"),
     footage_status: str | None = Query(None, alias="footage", description="comma list of footage statuses"),
-    caller: Caller = Depends(require("desk.view")), db: Session = Depends(get_db),
+    caller: Caller = Depends(require("desk.view", ITEM_PAGES)), db: Session = Depends(get_db),
 ):
-    """full=true adds each item's text, files and messages, so the desk can open any of them without another call.
+    """full=true adds each item's text, files and messages, so the desk can open any of them without another call;
+    it needs page.inbox (403 otherwise), and so does matching q against the story text (without it q skips the body).
     review_state is one state or a comma list (e.g. pending,held).
     counts (one per review state, plus all) use the same kind, from, to and district filters;
     kind_counts covers the from/to window only."""
+    inbox = caller.can("page.inbox")
+    if full and not inbox:
+        raise HTTPException(403, "You cannot open the inbox, so full=true (story text, files, messages) is refused.")
     kinds = ITEM_KINDS if (kind or "").strip().lower() == "all" else (_csv(kind, ITEM_KINDS, "kind") or ["story"])
     districts = _csv(district, None, "district", upper=True)
     footages = _csv(footage_status, FOOTAGE_STATES, "footage")
@@ -110,8 +114,8 @@ def list_items(
         stmt = stmt.where(Item.source == source)
     if q:
         like = f"%{q}%"
-        stmt = stmt.where(or_(Item.headline.ilike(like), Item.body.ilike(like), Item.slug.ilike(like),
-                              Item.sender_name.ilike(like), Item.reporter_slug.ilike(like)))
+        fields = [Item.headline, Item.slug, Item.sender_name, Item.reporter_slug] + ([Item.body] if inbox else [])
+        stmt = stmt.where(or_(*(f.ilike(like) for f in fields)))
     if before:
         stmt = stmt.where(Item.received_at < before)
     if full:
@@ -127,7 +131,8 @@ def list_items(
 
 
 @router.get("/items/{item_id}")
-def get_item(item_id: uuid.UUID, caller: Caller = Depends(require("desk.view")), db: Session = Depends(get_db)):
+def get_item(item_id: uuid.UUID, caller: Caller = Depends(require("desk.view", ("page.inbox",))),
+             db: Session = Depends(get_db)):
     return {"item": item_out(_item(db, item_id), full=True)}
 
 
@@ -212,7 +217,7 @@ def edit_item(item_id: uuid.UUID, patch: ItemPatch, caller: Caller = Depends(req
                  before=before, after=_snapshot(item)))
     item_changed(db, item)
     db.commit()
-    return {"item": item_out(item, full=True)}
+    return {"item": item_out(item, full=caller.can("page.inbox"))}
 
 
 @router.post("/items/{item_id}/slug/reset")
@@ -233,7 +238,7 @@ def reset_slug(item_id: uuid.UUID, caller: Caller = Depends(require("desk.review
                  before=before, after=_snapshot(item)))
     item_changed(db, item)
     db.commit()
-    return {"item": item_out(item, full=True)}
+    return {"item": item_out(item, full=caller.can("page.inbox"))}
 
 
 # --- decisions --------------------------------------------------------------------------------
@@ -320,14 +325,14 @@ def _decide(db: Session, caller: Caller, item: Item, action: str, snapshot: dict
     item.version += 1
     item_changed(db, item)
     db.commit()
-    out = {"item": item_out(item, full=True)}
+    out = {"item": item_out(item, full=caller.can("page.inbox"))}
     if story:
         out["story"] = story_out(story)
     return out
 
 
 @router.get("/meta")
-def meta(caller: Caller = Depends(require("desk.view")), db: Session = Depends(get_db)):
+def meta(caller: Caller = Depends(require("desk.view", ("page.inbox",))), db: Session = Depends(get_db)):
     """The desk's pick lists with English and Hindi labels: active rows only, in sort_order."""
     def rows(model, *extra: str) -> list[dict]:
         stmt = select(model).where(model.active).order_by(model.sort_order, model.code)
@@ -519,7 +524,8 @@ class ReporterPatch(BaseModel):
 @router.get("/reporters")
 def list_reporters(q: str | None = None, all: bool = Query(False, description="include inactive reporters"),
                    district: str | None = None, limit: int = Query(100, ge=1, le=1000),
-                   caller: Caller = Depends(require("desk.view")), db: Session = Depends(get_db)):
+                   caller: Caller = Depends(require("desk.view", ("page.reporters", "page.inbox"))),
+                   db: Session = Depends(get_db)):
     stmt = select(Reporter)
     if not all:
         stmt = stmt.where(Reporter.active)
@@ -642,13 +648,13 @@ def patch_reporter(reporter_id: uuid.UUID, body: ReporterPatch, caller: Caller =
 
 
 @router.get("/districts")
-def list_districts(caller: Caller = Depends(require("desk.view")), db: Session = Depends(get_db)):
+def list_districts(caller: Caller = Depends(require("desk.view", ANY_DESK_PAGE)), db: Session = Depends(get_db)):
     rows = db.scalars(select(Location).where(Location.active).order_by(Location.name))
     return {"districts": [district_out(r, folder=True) for r in rows]}
 
 
 @router.get("/locations")
-def locations(caller: Caller = Depends(require("desk.view")), db: Session = Depends(get_db)):
+def locations(caller: Caller = Depends(require("desk.view", ("page.inbox",))), db: Session = Depends(get_db)):
     rows = db.scalars(select(Location).where(Location.active).order_by(Location.name))
     return {"locations": [{"code": l.code, "name": l.name} for l in rows],
             "categories": list(CATEGORIES), "priorities": list(PRIORITIES), "story_types": list(STORY_TYPES),
@@ -657,7 +663,7 @@ def locations(caller: Caller = Depends(require("desk.view")), db: Session = Depe
 
 
 @router.get("/fetch-runs")
-def fetch_runs(limit: int = Query(30, le=200), caller: Caller = Depends(require("desk.view")),
+def fetch_runs(limit: int = Query(30, le=200), caller: Caller = Depends(require("desk.view", ANY_DESK_PAGE)),
                db: Session = Depends(get_db)):
     rows = db.scalars(select(FetchRun).order_by(FetchRun.id.desc()).limit(limit))
     poll = get_settings().mail_poll_seconds if get_settings().mail_enabled else None
@@ -711,11 +717,11 @@ def recheck_footage(item_id: uuid.UUID, caller: Caller = Depends(require("desk.r
     # meanwhile, this result belongs to the old state; drop it, as footage_scan does.
     if "manual" in (checked[0], item.footage_status) and (item.footage_status, item.footage_path) != checked:
         db.rollback()
-        return {"item": item_out(db.get(Item, item_id), full=True)}
+        return {"item": item_out(db.get(Item, item_id), full=caller.can("page.inbox"))}
     footage.apply(item, match, now())
     item_changed(db, item)
     db.commit()
-    return {"item": item_out(item, full=True)}
+    return {"item": item_out(item, full=caller.can("page.inbox"))}
 
 
 @router.put("/items/{item_id}/footage")
@@ -759,7 +765,7 @@ def set_footage(item_id: uuid.UUID, body: FootageIn, caller: Caller = Depends(re
                  before=before, after=_footage_snapshot(item)))
     item_changed(db, item)
     db.commit()
-    return {"item": item_out(item, full=True)}
+    return {"item": item_out(item, full=caller.can("page.inbox"))}
 
 
 def _safe_path(raw: str) -> str:
@@ -777,8 +783,8 @@ def _iso(dt: datetime | None) -> str | None:
 
 
 @router.get("/ftp/browse")
-def browse_ftp(path: str = Query("/", max_length=1000), caller: Caller = Depends(require("desk.review")),
-               db: Session = Depends(get_db)):
+def browse_ftp(path: str = Query("/", max_length=1000),
+               caller: Caller = Depends(require("desk.review", ("page.inbox",))), db: Session = Depends(get_db)):
     """Read-only listing of the newsroom FTP, only inside district folders and FTP_WRITE_ROOT.
     path=/ lists the district folders (and the write root) that exist on the server."""
     path = _safe_path(path)
@@ -847,7 +853,7 @@ def kill(item_id: uuid.UUID, caller: Caller = Depends(require("feed.manage")), d
 
 @router.get("/stories")
 def list_stories(item_id: uuid.UUID | None = None, limit: int = Query(100, le=500),
-                 caller: Caller = Depends(require("feed.view")), db: Session = Depends(get_db)):
+                 caller: Caller = Depends(require("feed.view", ("page.feed",))), db: Session = Depends(get_db)):
     """The feed page: every story with its state and when Octopus first collected it."""
     collected = collected_at_subquery().label("collected_at")
     stmt = select(Story, collected)
@@ -858,7 +864,7 @@ def list_stories(item_id: uuid.UUID | None = None, limit: int = Query(100, le=50
 
 
 @router.get("/feed-log")
-def feed_log(limit: int = Query(50, le=500), caller: Caller = Depends(require("feed.manage")),
+def feed_log(limit: int = Query(50, le=500), caller: Caller = Depends(require("feed.manage", ("page.feed",))),
              db: Session = Depends(get_db)):
     rows = db.scalars(select(FeedLog).order_by(FeedLog.id.desc()).limit(limit))
     last_ok = db.scalar(select(func.max(FeedLog.at)).where(FeedLog.status.in_((200, 304))))
@@ -868,8 +874,10 @@ def feed_log(limit: int = Query(50, le=500), caller: Caller = Depends(require("f
 
 
 @router.get("/activity")
-def activity(limit: int = Query(50, le=200), caller: Caller = Depends(require("desk.view")), db: Session = Depends(get_db)):
+def activity(limit: int = Query(50, le=200), caller: Caller = Depends(require("desk.view", ("page.dashboard",))),
+             db: Session = Depends(get_db)):
     rows = db.scalars(select(Audit).order_by(Audit.id.desc()).limit(limit)).all()
     return {"activity": [{"id": a.id, "action": a.action, "target_type": a.target_type, "target_id": a.target_id,
-                          "actor_id": str(a.actor_id) if a.actor_id else None, "at": a.created_at.isoformat()}
+                          "actor_id": str(a.actor_id) if a.actor_id else None, "actor": a.actor,
+                          "at": a.created_at.isoformat()}
                          for a in rows]}

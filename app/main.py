@@ -1,8 +1,9 @@
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
-from app.api import admin, auth, desk, events, feed, reporter, webhooks
+from app.api import admin, auth, desk, events, feed, owner, reporter, webhooks
 from app.config import get_settings
 from app.db import SessionLocal
 
@@ -18,6 +19,14 @@ app.add_middleware(
 
 for module in (auth, reporter, desk, admin, webhooks, events, feed):
     app.include_router(module.router)
+
+# Owner console API: mounted only when OWNER_API_KEY is set at start-up. The gate runs in front of FastAPI either way,
+# so a key removed later still turns every /owner path into 404 before anything is parsed.
+app.add_middleware(owner.OwnerGate)
+app.add_exception_handler(owner.OwnerError, owner.owner_error_response)
+app.add_exception_handler(RequestValidationError, owner.owner_validation_response)
+if get_settings().owner_api_enabled:
+    app.include_router(owner.router)
 
 if get_settings().storage_backend == "local":
     from app.api import devstorage

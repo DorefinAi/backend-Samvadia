@@ -9,7 +9,10 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.db import get_db
 from app.models import ROLES, Audit, Reporter, User
-from app.security import ROLE_RANK, Caller, assignable_roles, hash_password, require
+from app.security import (
+    ROLE_RANK, Caller, assignable_roles, effective_permissions, end_all_sessions, hash_password, leaves_an_admin,
+    load_overrides, lock_admin_changes, require, uncovered,
+)
 from app.serialize import user_out
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -37,7 +40,7 @@ def _may_manage(caller: Caller, target_role: str) -> bool:
 
 
 @router.get("/users")
-def list_users(caller: Caller = Depends(require("users.manage")), db: Session = Depends(get_db)):
+def list_users(caller: Caller = Depends(require("users.manage", ("page.access",))), db: Session = Depends(get_db)):
     return {"users": [user_out(u) for u in db.scalars(select(User).order_by(User.name))]}
 
 
@@ -69,20 +72,32 @@ def create_user(body: UserIn, caller: Caller = Depends(require("users.manage")),
 @router.patch("/users/{user_id}")
 def update_user(user_id: uuid.UUID, body: UserPatch, caller: Caller = Depends(require("users.manage")),
                 db: Session = Depends(get_db)):
-    user = db.get(User, user_id)
+    lock_admin_changes(db)
+    # read after the lock (and past the identity map: the caller may be editing themselves)
+    user = db.get(User, user_id, populate_existing=True)
     if user is None:
         raise HTTPException(404, "User not found.")
     if not _may_manage(caller, user.role):
         raise HTTPException(403, "You can only change people below your own role.")
     if body.role is not None and body.role not in assignable_roles(caller.user.role):
         raise HTTPException(403, "You cannot give this role.")
+    role = body.role if body.role is not None else user.role
+    active = body.active if body.active is not None else user.active
+    overrides = load_overrides(db, user.id)
+    # an override can give someone more than their role: an admin may only change people whose access they hold
+    missing = uncovered(caller.permissions, effective_permissions(user.role, overrides)
+                        + effective_permissions(role, overrides))
+    if missing:
+        raise HTTPException(403, f"This person has access you do not have: {', '.join(dict.fromkeys(missing))}.")
+    if not leaves_an_admin(db, user, role, active, overrides):
+        raise HTTPException(409, "This is the last active super admin. Make someone else super admin first.")
     before = user_out(user)
-    if body.role is not None:
-        user.role = body.role
-    if body.active is not None:
-        user.active = body.active
+    user.role, user.active = role, active
     if body.password:
         user.password_hash = hash_password(body.password)
+    if not active or body.password:
+        # signed out everywhere at once; changing your own password keeps the session you did it from
+        end_all_sessions(db, user.id, keep=caller.session.id if user.id == caller.user.id and active else None)
     db.add(Audit(actor_id=caller.user.id, action="user.edit", target_type="user", target_id=str(user.id),
                  before=before, after=user_out(user)))
     db.commit()

@@ -57,6 +57,10 @@ class Settings(BaseSettings):
 
     blind_rate: float = 0.10
 
+    # Owner console (Sentry): /owner/* is on only when this is set and at least 32 characters long.
+    # Server-to-server only; it never goes into a browser bundle.
+    owner_api_key: str = ""
+
     ms_tenant_id: str = ""
     ms_client_id: str = ""
     ms_client_secret: str = ""
@@ -85,6 +89,10 @@ class Settings(BaseSettings):
             if url.startswith(prefix):
                 return "postgresql+psycopg://" + url[len(prefix):]
         return url
+
+    @property
+    def owner_api_enabled(self) -> bool:
+        return len(self.owner_api_key.strip()) >= 32
 
     @property
     def octopus_ip_list(self) -> list[str]:

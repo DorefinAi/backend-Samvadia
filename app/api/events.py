@@ -7,6 +7,7 @@ Last-Event-ID and we replay what it missed (the table keeps 24 hours).
 """
 import asyncio
 import json
+import time
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
@@ -15,11 +16,12 @@ from starlette.concurrency import run_in_threadpool
 
 from app.db import SessionLocal
 from app.models import Event
-from app.security import load_caller
+from app.security import ANY_DESK_PAGE, load_caller
 
 router = APIRouter(tags=["live updates"])
 POLL_SECONDS = 1.0
 PING_SECONDS = 25.0
+RECHECK_SECONDS = 15.0  # how often an open stream re-checks the session and permissions
 
 
 class Hub:
@@ -78,10 +80,25 @@ async def stream(request: Request, app: str = Query(..., pattern="^(desk|reporte
         with SessionLocal() as db:
             return load_caller(db, request)
 
+    def may_listen(c) -> bool:
+        if app == "desk":
+            return c.can("desk.view") and c.can_open(ANY_DESK_PAGE)
+        return c.reporter is not None
+
+    def still_allowed() -> bool:
+        """Re-read the session and permissions: a disabled user, a deleted session or a removed permission ends
+        the stream. A database blip does not."""
+        try:
+            return may_listen(auth())
+        except HTTPException:
+            return False
+        except Exception:
+            return True
+
     caller = await run_in_threadpool(auth)
-    if app == "desk" and not caller.can("desk.view"):
+    if app == "desk" and not may_listen(caller):
         raise HTTPException(403, "Your role cannot see the desk.")
-    if app == "reporter" and caller.reporter is None:
+    if app == "reporter" and not may_listen(caller):
         raise HTTPException(403, "This login is not linked to a reporter.")
     reporter_id = str(caller.reporter.id) if caller.reporter else None
     header = request.headers.get("Last-Event-ID", "")
@@ -104,11 +121,21 @@ async def stream(request: Request, app: str = Query(..., pattern="^(desk|reporte
                     seen = row["id"]
                     if visible(row):
                         yield frame(row)
+            checked = pinged = time.monotonic()
             while not await request.is_disconnected():
                 try:
-                    row = await asyncio.wait_for(queue.get(), timeout=PING_SECONDS)
+                    row = await asyncio.wait_for(queue.get(), timeout=min(PING_SECONDS, RECHECK_SECONDS))
                 except asyncio.TimeoutError:
-                    yield ": ping\n\n"
+                    row = None
+                t = time.monotonic()
+                if t - checked >= RECHECK_SECONDS:
+                    checked = t
+                    if not await run_in_threadpool(still_allowed):
+                        return  # signed out or no longer allowed: close; the browser's retry then gets 401/403
+                if row is None:
+                    if t - pinged >= PING_SECONDS:
+                        pinged = t
+                        yield ": ping\n\n"
                     continue
                 if row["id"] > seen and visible(row):
                     yield frame(row)
