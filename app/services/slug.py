@@ -2,8 +2,8 @@
 
 Format: DDMMYY_CITY_SUBJECT_TYPE_REPORTER, uppercase ASCII and underscores.
     141026_UDR_PARYATAN_SEASON_AV_SUNITA
-A second story with the same slug gets _2, _3 ... at the end.
-The slug is also the FTP folder name: <FTP_BASE_DIR>/<slug>/.
+The slug is also the FTP folder name: <FTP_BASE_DIR>/<slug>/. A second story with the same slug shares that
+folder; a file name already there gets _2, _3 ...
 """
 import re
 from datetime import datetime, timedelta, timezone
@@ -83,17 +83,6 @@ def build_slug(received_at: datetime, city_code: str | None, subject: str, story
     if error:
         raise SlugError(error)
     return slug
-
-
-def with_suffix(slug: str, n: int) -> str:
-    return slug if n < 2 else f"{slug}_{n}"
-
-
-def unique_slug(slug: str, taken: set[str]) -> str:
-    n = 1
-    while with_suffix(slug, n) in taken:
-        n += 1
-    return with_suffix(slug, n)
 
 
 def slug_error(slug: str) -> str | None:

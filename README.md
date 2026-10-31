@@ -21,6 +21,9 @@ portal / email / WhatsApp
 
 - **Names on FTP**
   - Files keep their original names. Two files with the same name become `IMG_0001.jpg` and `IMG_0001_2.jpg`.
+  - One slug, one folder. If `<FTP_BASE_DIR>/<slug>/` already exists (the reporter sent the slug again, or a second
+    WhatsApp burst after the merge window), the new files go into that folder; no `<slug>_2` folder is made.
+    A desk slug change that lands on an existing folder moves this story's files into it.
   - WhatsApp photos, videos and voice notes arrive without a name. They are named by time, e.g. `20261017-1042_01.jpg`.
 - **Who is the reporter**
   - The sender is matched to the reporter list by phone (WhatsApp) or email (Outlook).
@@ -42,7 +45,7 @@ portal / email / WhatsApp
   - The slug the reporter typed (subject, else the first line) is kept as `reporter_slug`, with `slug_key`
     (a-z 0-9 only) and `parsed` (date, city token, type, reporter name): `app/services/reporter_slug.py`.
   - The FTP folder name (`slug`) is that slug made ASCII (Hindi transliterated, a Hindi description at the end
-    left out, symbols to `_`, max 96, `_2` if taken). Only without one is the slug built the old way.
+    left out, symbols to `_`, max 96). Only without one is the slug built the old way.
   - The district comes from the city token (AJM03, alw17, BAL 2, dausa...), else the reporter's district.
     Districts, their aliases and their newsroom FTP folder are the `locations` table (48 rows).
   - `kind`: story, press_release, day_plan or not_a_story (bounces, IMD bulletins, newsletters, unknown email
@@ -108,13 +111,6 @@ cp .env.example .env                            # then fill in DATABASE_URL, Sup
 .venv/Scripts/python -m app.cli create-user --username vansh --name "Vansh" --role super_admin
 .venv/Scripts/uvicorn app.main:app --reload     # API on http://localhost:8000, docs at /docs
 .venv/Scripts/python -m app.worker              # in a second terminal
-```
-
-Tests:
-
-```bash
-.venv/Scripts/python -m pytest                  # unit tests: slug, Hindi transliteration, names, email, WhatsApp
-.venv/Scripts/python tests/smoke/run_smoke.py   # end to end on a throwaway Postgres + FTP server
 ```
 
 ## Supabase setup

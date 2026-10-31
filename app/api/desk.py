@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.config import get_settings
 from app.db import get_db
 from app.events import item_changed
-from app.intake import reporter_copy, reporter_linked, schedule_finalize, slug_for
+from app.intake import reporter_copy, reporter_linked, same_slug_ci, schedule_finalize, slug_for
 from app.jobs import enqueue, now
 from app.api.reporter import clean_tags
 from app.models import (
@@ -196,9 +196,7 @@ def edit_item(item_id: uuid.UUID, patch: ItemPatch, caller: Caller = Depends(req
         error = slug_error(patch.slug)
         if error:
             raise HTTPException(422, error)
-        if db.scalar(select(Item.id).where(Item.slug == patch.slug, Item.id != item.id)):
-            raise HTTPException(409, f"Slug {patch.slug} is already used by another story.")
-        item.slug, item.slug_edited = patch.slug, True
+        item.slug, item.slug_edited = same_slug_ci(db, item, patch.slug), True  # a slug in use shares its folder
     elif slug_inputs_changed and item.reporter_id and not item.slug_edited:
         try:
             item.slug = slug_for(db, item)

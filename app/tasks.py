@@ -14,20 +14,22 @@ import os
 import posixpath
 import shutil
 import tempfile
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 
 import httpx
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, text
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
+from app.db import engine
 from app.events import emit, item_changed
 from app.intake import WAITING_STATES, add_media, add_message, find_reporter, finalize, record_fetch, schedule_finalize
 from app.jobs import GiveUp, RetryLater, enqueue, now
 from app.models import KV, Event, FeedLog, Item, Job, Media
 from app.services import footage, ftp, mail, storage, whatsapp
 from app.services.filenames import generated_name, safe_name, unique_name
-from app.services.slug import unique_slug
 from app.stories import release_waiting
 
 log = logging.getLogger("tasks")
@@ -55,39 +57,46 @@ def ftp_upload(db: Session, payload: dict) -> None:
     item = _item(db, payload)
     if item is None or not item.slug:
         return
-    files = db.scalars(select(Media).where(Media.item_id == item.id, Media.state == "in_storage")
-                       .order_by(Media.received_at, Media.created_at)).all()
-    workdir = tempfile.mkdtemp(prefix="vai-")
-    remote = ftp.connect()
-    try:
-        if not item.ftp_folder:
-            item.ftp_folder = _claim_folder(db, remote, item)
-            db.commit()
-        remote.makedirs(item.ftp_folder)
-        taken = set(remote.listdir(item.ftp_folder))
-        for index, media in enumerate(files, start=1):
-            if not media.file_name:
-                base = safe_name(media.original_name) or generated_name(media.received_at, index, media.content_type)
-                media.file_name = unique_name(base, taken)
-            taken.add(media.file_name)
-            local = storage.download(media.storage_key, os.path.join(workdir, str(media.id)))
-            target = posixpath.join(item.ftp_folder, media.file_name)
-            ftp.upload_verified(remote, local.path, target, local.size)
-            os.remove(local.path)
-            media.state, media.ftp_path, media.size_bytes, media.error = "on_ftp", target, local.size, None
-            media.sha256 = media.sha256 or local.sha256
-            emit(db, "desk", "media.on_ftp", {"item_id": str(item.id), "media_id": str(media.id), "ftp_path": target})
-            db.commit()  # each finished file is recorded even if a later one fails
-            try:
-                storage.delete([media.storage_key])
-                media.storage_deleted_at = now()
-                db.commit()
-            except Exception as e:  # the file is safe on FTP; purge_storage retries the delete
-                log.warning("storage delete failed for %s: %s", media.id, e)
-                db.rollback()
-    finally:
-        remote.close()
-        shutil.rmtree(workdir, ignore_errors=True)
+    if not get_settings().ftp_host:  # not set up yet: wait, and upload once FTP_HOST is set and the worker restarted
+        raise RetryLater(300, "FTP_HOST is not set")
+    if not item.ftp_folder:
+        item.ftp_folder = ftp.folder_for(item.slug)  # one slug, one folder: a slug sent again joins it
+        db.commit()
+    folder = item.ftp_folder
+    with _folder_lock(folder):  # other stories with this slug may be writing to the same folder
+        db.refresh(item)
+        if item.ftp_folder != folder:
+            raise RetryLater(5, "the FTP folder was renamed while this upload waited")
+        files = db.scalars(select(Media).where(Media.item_id == item.id, Media.state == "in_storage")
+                           .order_by(Media.received_at, Media.created_at)).all()
+        workdir = tempfile.mkdtemp(prefix="vai-")
+        remote = ftp.connect()
+        try:
+            remote.makedirs(item.ftp_folder)
+            taken = set(remote.listdir(item.ftp_folder))
+            for index, media in enumerate(files, start=1):
+                if not media.file_name:
+                    base = safe_name(media.original_name) or generated_name(media.received_at, index, media.content_type)
+                    media.file_name = unique_name(base, taken)
+                taken.add(media.file_name)
+                local = storage.download(media.storage_key, os.path.join(workdir, str(media.id)))
+                target = posixpath.join(item.ftp_folder, media.file_name)
+                ftp.upload_verified(remote, local.path, target, local.size)
+                os.remove(local.path)
+                media.state, media.ftp_path, media.size_bytes, media.error = "on_ftp", target, local.size, None
+                media.sha256 = media.sha256 or local.sha256
+                emit(db, "desk", "media.on_ftp", {"item_id": str(item.id), "media_id": str(media.id), "ftp_path": target})
+                db.commit()  # each finished file is recorded even if a later one fails
+                try:
+                    storage.delete([media.storage_key])
+                    media.storage_deleted_at = now()
+                    db.commit()
+                except Exception as e:  # the file is safe on FTP; purge_storage retries the delete
+                    log.warning("storage delete failed for %s: %s", media.id, e)
+                    db.rollback()
+        finally:
+            remote.close()
+            shutil.rmtree(workdir, ignore_errors=True)
     item = _item(db, payload)
     pending = db.scalar(select(func.count()).select_from(Media).where(
         Media.item_id == item.id, Media.state.in_(("in_storage", *WAITING_STATES))))
@@ -98,22 +107,33 @@ def ftp_upload(db: Session, payload: dict) -> None:
     item_changed(db, item)
 
 
-def _claim_folder(db: Session, remote: ftp.Remote, item: Item) -> str:
-    """The slug is the folder. If a folder of that name already exists on FTP, move to _2, _3 ..."""
-    slug = item.slug
-    taken_db = set(db.scalars(select(Item.slug).where(Item.slug.like(f"{slug}%"), Item.id != item.id)).all())
-    while remote.exists(ftp.folder_for(slug)) or slug in taken_db:
-        taken_db.add(slug)
-        slug = unique_slug(item.slug, taken_db)
-    item.slug = slug
-    return ftp.folder_for(slug)
+@contextmanager
+def _folder_lock(*folders: str) -> Iterator[None]:
+    """One writer per FTP folder at a time, across workers, so two stories never pick the same file name.
+    Held on its own connection: the job's session commits after every file. Busy: try again shortly."""
+    keys = sorted({f.lower() for f in folders})  # the newsroom FTP runs on Windows; sorted, so no deadlock
+    with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:  # not idle in transaction
+        held = []
+        try:
+            for key in keys:
+                if not conn.scalar(text("SELECT pg_try_advisory_lock(hashtext(:k))"), {"k": key}):
+                    raise RetryLater(20, f"Another story is writing to {key}")
+                held.append(key)
+            yield
+        finally:
+            try:
+                for key in held:
+                    conn.execute(text("SELECT pg_advisory_unlock(hashtext(:k))"), {"k": key})
+            except Exception as e:  # never hand a connection that may still hold a lock back to the pool
+                log.warning("folder unlock failed, dropping the connection: %s", e)
+                conn.invalidate()
 
 
 def ftp_rename_failed(db: Session, payload: dict, error: str) -> None:
     """The folder kept its old name: say so on the item, where the desk sees it."""
     item = _item(db, payload)
     if item:
-        item.intake_note = f"FTP folder not renamed: {error}"[:500]
+        item.intake_note = f"FTP folder not renamed (some files may already be in the new folder): {error}"[:500]
         item_changed(db, item)
 
 
@@ -130,30 +150,51 @@ def ftp_rename(db: Session, payload: dict) -> None:
     if item is None or not item.slug or item.ftp_folder != old:
         return
     new = ftp.folder_for(item.slug)
-    media_rows = db.scalars(select(Media).where(Media.item_id == item.id, Media.ftp_path.isnot(None))).all()
-    ours = {posixpath.basename(m.ftp_path) for m in media_rows}
-    remote = ftp.connect()
-    try:
-        if remote.exists(old):
-            if remote.exists(new):  # never merge into or replace someone else's folder
-                raise GiveUp(f"Cannot rename FTP folder {old} to {new}: {new} already exists. "
-                             "Change the slug, or sort the folders out on the FTP server and edit again.")
-            remote.rename(old, new)
-        elif remote.exists(new):
-            # old is gone and new is there: adopt it only if it is ours (an earlier attempt renamed it, then failed
-            # before the commit): empty, or holding this story's files. Anything else is another story's folder.
-            there = set(remote.listdir(new))
-            if there and not (ours and ours <= there):
-                raise GiveUp(f"FTP folder {new} already exists and isn't this story's (and {old} is gone). "
-                             "Change the slug, or sort the folders out on the FTP server and edit again.")
-        else:
-            remote.makedirs(new)
-    finally:
-        remote.close()
-    item.ftp_folder = new
-    for media in media_rows:
-        media.ftp_path = posixpath.join(new, posixpath.basename(media.ftp_path))
-    item_changed(db, item)
+    if new.lower() == old.lower():
+        return  # only the letter case changed: the newsroom FTP (Windows) sees the same folder, so keep it
+    if not get_settings().ftp_host:
+        raise RetryLater(300, "FTP_HOST is not set")
+    with _folder_lock(old, new):
+        media_rows = db.scalars(select(Media).where(Media.item_id == item.id, Media.ftp_path.isnot(None))).all()
+        shared = db.scalar(select(Item.id).where(func.lower(Item.ftp_folder) == old.lower(), Item.id != item.id)
+                           .limit(1)) is not None
+        remote = ftp.connect()
+        try:
+            if not shared and remote.exists(old) and not remote.exists(new):
+                remote.rename(old, new)
+                for media in media_rows:
+                    media.ftp_path = posixpath.join(new, posixpath.basename(media.ftp_path))
+            else:
+                # The new slug's folder is already there (join it), or other stories still use the old one:
+                # move only this story's files, one at a time, so a retry picks up where this one stopped.
+                remote.makedirs(new)
+                taken = set(remote.listdir(new))
+                for media in media_rows:
+                    if posixpath.dirname(media.ftp_path).lower() == new.lower():
+                        continue  # moved by an earlier attempt
+                    current = posixpath.basename(media.ftp_path)
+                    if remote.exists(media.ftp_path):
+                        name = unique_name(current, taken)
+                        remote.rename(media.ftp_path, posixpath.join(new, name))
+                    elif remote.exists(posixpath.join(new, current)) and not _ftp_path_taken(db, item, new, current):
+                        name = current  # an earlier attempt moved it (or the whole folder), then stopped
+                    else:
+                        raise GiveUp(f"{media.ftp_path} is missing on the FTP server, so it can't move to {new}.")
+                    taken.add(name)
+                    media.file_name, media.ftp_path = name, posixpath.join(new, name)
+                    db.commit()
+        finally:
+            remote.close()
+        item.ftp_folder = new  # committed before the lock is released, so a waiting upload sees the new folder
+        item_changed(db, item)
+        db.commit()
+
+
+def _ftp_path_taken(db: Session, item: Item, folder: str, name: str) -> bool:
+    """Another story's file already recorded at folder/name: never adopt it as this story's."""
+    path = posixpath.join(folder, name).lower()
+    return db.scalar(select(Media.id).where(func.lower(Media.ftp_path) == path, Media.item_id != item.id)
+                     .limit(1)) is not None
 
 
 # --- WhatsApp ---------------------------------------------------------------------------------

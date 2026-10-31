@@ -11,7 +11,6 @@ the reporter's own upload (app/services/footage.py).
 """
 import logging
 import random
-import re
 import uuid
 from datetime import datetime, timedelta
 
@@ -26,7 +25,7 @@ from app.services import districts as district_service
 from app.services import footage
 from app.services.filenames import kind_of
 from app.services.reporter_slug import folder_slug, parse
-from app.services.slug import IST, STORY_TYPES, SlugError, build_slug, with_suffix
+from app.services.slug import IST, STORY_TYPES, SlugError, build_slug
 from app.services.triage import classify
 from app.services.whatsapp import digits
 
@@ -252,14 +251,11 @@ def schedule_finalize(db: Session, item: Item, delay: float = 0) -> None:
             delay=delay, max_attempts=6)
 
 
-def unique_slug_ci(db: Session, item: Item, base: str) -> str:
-    """base, or base_2, base_3 ... compared without letter case: the newsroom FTP runs on Windows."""
-    pattern = re.sub(r"([\\%_])", r"\\\1", base[:80]) + "%"
-    taken = {s.lower() for s in db.scalars(select(Item.slug).where(Item.slug.ilike(pattern), Item.id != item.id))}
-    n = 1
-    while with_suffix(base, n).lower() in taken:
-        n += 1
-    return with_suffix(base, n)
+def same_slug_ci(db: Session, item: Item, base: str) -> str:
+    """An existing story's slug when it differs only in letter case (the newsroom FTP runs on Windows), so both
+    stories land in one folder; else base. A slug sent again shares the folder, it never becomes base_2."""
+    return db.scalar(select(Item.slug).where(func.lower(Item.slug) == base.lower(), Item.id != item.id)
+                     .order_by(Item.created_at).limit(1)) or base
 
 
 def slug_for(db: Session, item: Item) -> str:
@@ -269,14 +265,14 @@ def slug_for(db: Session, item: Item) -> str:
     # Review note (L7, left as is on purpose): this lets an email from an unknown sender whose subject looks like
     # a slug upload to FTP without a desk check. Whether to allow that is a product decision, not a bug fix.
     if base:
-        return unique_slug_ci(db, item, base[:93].rstrip("_"))  # room for _NN within 96
+        return same_slug_ci(db, item, base[:96].rstrip("_"))
     reporter = item.reporter
     if reporter is None:
         raise SlugError("Unknown sender: pick a reporter to build the slug.")
     subject = item.slug_subject or item.headline or item.body
     slug = build_slug(item.received_at, item.city_code or reporter.city_code, subject, item.story_type or get_settings().default_story_type,
                       reporter.slug_code, get_settings().slug_subject_max_words)
-    return unique_slug_ci(db, item, slug)
+    return same_slug_ci(db, item, slug)
 
 
 def finalize(db: Session, item: Item) -> None:

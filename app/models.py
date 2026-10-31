@@ -167,6 +167,7 @@ class Item(Base):
         Index("items_conversation_idx", "source", "conversation_key"),
         Index("items_kind_received_idx", "kind", "received_at"),
         Index("items_slug_key_idx", "slug_key"),
+        Index("items_slug_lower_idx", text("lower(slug)")),  # same_slug_ci: one folder per slug, any case
         Index("items_footage_due_idx", "footage_checked_at",
               postgresql_where=text("footage_status IN ('waiting', 'found')")),
         Index("items_event_key_idx", "event_key", postgresql_where=text("event_key IS NOT NULL")),
@@ -188,7 +189,7 @@ class Item(Base):
     priority: Mapped[str] = mapped_column(String(16), nullable=False, server_default="normal", default="normal")
     tags: Mapped[list[str]] = mapped_column(ARRAY(Text), nullable=False, server_default=text("'{}'"), default=list)
     city_code: Mapped[str | None] = mapped_column(String(8))  # overrides the reporter's city for this story
-    slug: Mapped[str | None] = mapped_column(String(96), unique=True)
+    slug: Mapped[str | None] = mapped_column(String(96))  # not unique: one slug, one FTP folder
     slug_edited: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"), default=False)
     ftp_folder: Mapped[str | None] = mapped_column(Text)
     intake_state: Mapped[str] = mapped_column(String(24), nullable=False, server_default="collecting", default="collecting")

@@ -18,8 +18,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# pgserver and pyftpdlib run a throwaway Postgres and FTP server for tests/smoke/run_smoke.py
-dev = ["pytest>=8", "pgserver>=0.1.4", "pyftpdlib>=2.0"]
+# pgserver and pyftpdlib run a throwaway Postgres and FTP server for python -m app.devstack
+dev = ["pgserver>=0.1.4", "pyftpdlib>=2.0"]
 
 [build-system]
 requires = ["setuptools>=69"]
@@ -28,5 +28,3 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 include = ["app*"]
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
