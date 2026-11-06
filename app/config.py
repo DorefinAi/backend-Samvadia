@@ -60,6 +60,10 @@ class Settings(BaseSettings):
     # Owner console (Sentry): /owner/* is on only when this is set and at least 32 characters long.
     # Server-to-server only; it never goes into a browser bundle.
     owner_api_key: str = ""
+    # Ops log (dev-docs/ops-logs-contract.md): log lines at this level and up go to ops_log for Sentry's Logs page,
+    # and each process beats in ops_heartbeat. false turns both off (stderr logging is unchanged either way).
+    ops_log_enabled: bool = True
+    ops_log_level: str = "INFO"
 
     ms_tenant_id: str = ""
     ms_client_id: str = ""

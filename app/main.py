@@ -1,13 +1,25 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
+from app import opslog
 from app.api import admin, auth, desk, events, feed, owner, reporter, webhooks
 from app.config import get_settings
 from app.db import SessionLocal
 
-app = FastAPI(title="Vartmaan AI backend", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Here, not at import: uvicorn has configured its loggers by now (dictConfig would drop a handler added earlier)
+    opslog.install("samvadia-api", "api")
+    yield
+    opslog.flush()
+
+
+app = FastAPI(title="Vartmaan AI backend", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

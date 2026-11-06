@@ -27,7 +27,7 @@ from app.db import engine
 from app.events import emit, item_changed
 from app.intake import WAITING_STATES, add_media, add_message, find_reporter, finalize, record_fetch, schedule_finalize
 from app.jobs import GiveUp, RetryLater, enqueue, now
-from app.models import KV, Event, FeedLog, Item, Job, Media
+from app.models import KV, Event, FeedLog, Item, Job, Media, OpsHeartbeat, OpsLog
 from app.services import footage, ftp, mail, storage, whatsapp
 from app.services.filenames import generated_name, safe_name, unique_name
 from app.stories import release_waiting
@@ -474,6 +474,9 @@ def cleanup(db: Session, payload: dict) -> None:
     db.execute(delete(Event).where(Event.created_at < now() - timedelta(hours=24)))
     db.execute(delete(Job).where(Job.status == "done", Job.updated_at < now() - timedelta(days=7)))
     db.execute(delete(FeedLog).where(FeedLog.at < now() - timedelta(days=90)))
+    # Ops log (dev-docs/ops-logs-contract.md): lines 14 days, processes not heard from in 7 days
+    db.execute(delete(OpsLog).where(OpsLog.at < now() - timedelta(days=14)))
+    db.execute(delete(OpsHeartbeat).where(OpsHeartbeat.beat_at < now() - timedelta(days=7)))
 
 
 HANDLERS = {

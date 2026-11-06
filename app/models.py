@@ -477,6 +477,36 @@ class FeedLog(Base):
     user_agent: Mapped[str | None] = mapped_column(Text)
 
 
+class OpsLog(Base):
+    """Every log line at OPS_LOG_LEVEL and up, already redacted (app/opslog.py). Sentry pulls it through
+    GET /owner/logs with id as the cursor. Kept 14 days (cleanup)."""
+    __tablename__ = "ops_log"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False,
+                                         index=True)  # the logger's time, not the insert time
+    system: Mapped[str] = mapped_column(Text, nullable=False)  # samvadia-api | samvadia-worker
+    level: Mapped[str] = mapped_column(Text, nullable=False)  # debug | info | warn | error
+    logger: Mapped[str | None] = mapped_column(Text)
+    message: Mapped[str] = mapped_column(Text, nullable=False)  # max 2000 chars
+    slug: Mapped[str | None] = mapped_column(Text)
+    item_id: Mapped[str | None] = mapped_column(Text)
+    fields: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True))  # scalars only, max 20 keys
+
+
+class OpsHeartbeat(Base):
+    """One row per running process (api, worker, worker:<queues>), beaten every 30 s. Kept 7 days after the last."""
+    __tablename__ = "ops_heartbeat"
+
+    process: Mapped[str] = mapped_column(Text, primary_key=True)
+    system: Mapped[str] = mapped_column(Text, nullable=False)
+    host: Mapped[str] = mapped_column(Text, nullable=False)
+    pid: Mapped[int] = mapped_column(Integer, nullable=False)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    beat_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    info: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True))
+
+
 class KV(Base):
     """Small bits of state, e.g. the Outlook delta link."""
     __tablename__ = "kv"

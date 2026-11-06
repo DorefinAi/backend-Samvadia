@@ -8,6 +8,7 @@ import argparse
 import logging
 import signal
 
+from app import opslog
 from app.config import get_settings
 from app.db import session_scope
 from app.jobs import ALL_QUEUES, Stop, enqueue, reset_stale, work_forever
@@ -29,6 +30,8 @@ def main() -> None:
     queues = [q.strip() for q in args.queues.split(",") if q.strip()]
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    process = "worker" if sorted(queues) == sorted(ALL_QUEUES) else "worker:" + ",".join(queues)
+    opslog.install("samvadia-worker", process, {"queues": queues})
     signal.signal(signal.SIGTERM, lambda *_: setattr(Stop, "requested", True))
     s = get_settings()
     periodic = [(60, reset_stale)]

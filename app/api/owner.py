@@ -26,9 +26,10 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Session, aliased
 from sqlalchemy.sql import cast
 
+from app import opslog
 from app.config import get_settings
 from app.db import get_db
-from app.models import ROLES, Audit, Reporter, User, UserPermissionOverride, UserSession
+from app.models import ROLES, Audit, OpsHeartbeat, OpsLog, Reporter, User, UserPermissionOverride, UserSession
 from app.security import (
     CATALOGUE, PERMISSIONS, ROLE_LABELS, client_ip, effective, end_all_sessions, leaves_an_admin, load_overrides,
     lock_admin_changes, owner_limiter,
@@ -36,6 +37,9 @@ from app.security import (
 
 ACTOR = re.compile(r"[a-z0-9._-]{1,64}")
 MAX_BODY = 64 * 1024  # the largest real body (all overrides) is ~2 KB
+DIGITS = re.compile(r"[0-9]{1,19}")
+BIGINT_MAX = 2**63 - 1
+LOGS_LIMIT, LOGS_LIMIT_MAX = 500, 1000
 
 
 def is_owner_path(path: str) -> bool:
@@ -205,6 +209,35 @@ def _read_cursor(cursor: str) -> tuple[datetime, int]:
         raise OwnerError(400, "invalid", "cursor: not a cursor from this API.") from None
 
 
+def logs_params(after: str | None, limit: str | None) -> tuple[int, int]:
+    """GET /owner/logs query: after = a non-negative integer (missing = 0), limit = 1..1000 (missing = 500).
+    Plain ASCII digits only (no sign, spaces or decimals); anything else is 400 invalid."""
+    if after is None:
+        after_id = 0
+    elif DIGITS.fullmatch(after) and int(after) <= BIGINT_MAX:
+        after_id = int(after)
+    else:
+        raise OwnerError(400, "invalid", "after: must be a non-negative integer (an id from this API).")
+    if limit is None:
+        size = LOGS_LIMIT
+    elif DIGITS.fullmatch(limit) and 1 <= int(limit) <= LOGS_LIMIT_MAX:
+        size = int(limit)
+    else:
+        raise OwnerError(400, "invalid", f"limit: must be an integer from 1 to {LOGS_LIMIT_MAX}.")
+    return after_id, size
+
+
+def _log_entry(row: OpsLog) -> dict:
+    return {"id": str(row.id), "at": row.at.isoformat(), "system": row.system, "level": row.level,
+            "logger": row.logger, "message": row.message, "slug": row.slug, "itemId": row.item_id,
+            "fields": row.fields}
+
+
+def _heartbeat(row: OpsHeartbeat) -> dict:
+    return {"process": row.process, "system": row.system, "host": row.host, "pid": row.pid,
+            "startedAt": row.started_at.isoformat(), "beatAt": row.beat_at.isoformat(), "info": row.info}
+
+
 # --- routes -------------------------------------------------------------------------------------
 
 @router.get("/people")
@@ -311,3 +344,20 @@ def history(limit: int = Query(50, ge=1, le=200), cursor: str | None = Query(Non
                for a, actor_name, name in rows]
     last = rows[-1][0] if len(rows) == limit else None
     return {"entries": entries, "next": _cursor(last.created_at, last.id) if last else None}
+
+
+@router.get("/logs")
+def logs(request: Request, db: Session = Depends(get_db)):
+    """Ops log lines with id > after, id ascending (dev-docs/ops-logs-contract.md section 2). Read-only: no audit.
+    after missing or 0: the newest `limit` lines (still ascending), so a first pull does not start 14 days back."""
+    after, limit = logs_params(request.query_params.get("after"), request.query_params.get("limit"))
+    if after:
+        rows = db.scalars(select(OpsLog).where(OpsLog.id > after).order_by(OpsLog.id).limit(limit)).all()
+    else:
+        rows = db.scalars(select(OpsLog).order_by(OpsLog.id.desc()).limit(limit)).all()[::-1]
+    beats = db.scalars(select(OpsHeartbeat).order_by(OpsHeartbeat.process)).all()
+    return {"system": "samvadia",
+            "entries": [_log_entry(r) for r in rows],
+            "next": str(rows[-1].id) if rows else None,
+            "heartbeats": [_heartbeat(b) for b in beats],
+            "dropped": opslog.dropped()}
